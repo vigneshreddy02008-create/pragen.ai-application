@@ -1,0 +1,10 @@
+# Local applicant database (contains private phone numbers and emails)
+data/
+
+# Dependency folders
+node_modules/
+
+# Logs and environment files
+*.log
+.env
+.system_generated/

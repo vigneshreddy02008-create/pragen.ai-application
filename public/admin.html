@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pragen.ai Admin Dashboard | Manage Applications</title>
+    <!-- Google Fonts for futuristic, clean design -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Inline styles specifically for Admin Panel extensions -->
+    <style>
+        .admin-container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .admin-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Metrics Row */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: var(--transition-smooth);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--neon-purple);
+        }
+
+        .metric-val {
+            font-family: var(--font-header);
+            font-size: 36px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-card.pending .metric-val { color: #f59e0b; }
+        .metric-card.approved .metric-val { color: var(--success); }
+        .metric-card.rejected .metric-val { color: var(--error); }
+
+        /* Filter Controls */
+        .filter-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .filter-group input, .filter-group select {
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        /* Applicant List */
+        .applicants-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 48px;
+            background: var(--card-bg);
+            border: 1px dashed var(--border-color);
+            border-radius: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* Applicant Card */
+        .applicant-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: var(--transition-smooth);
+        }
+
+        .applicant-card:hover {
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .applicant-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .applicant-name {
+            font-family: var(--font-header);
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .applicant-meta-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            color: var(--text-primary);
+        }
+
+        .badge-tag.state-badge {
+            background: rgba(59, 130, 246, 0.12);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .badge-tag.year-badge {
+            background: rgba(139, 92, 246, 0.12);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .status-pill {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 30px;
+            text-transform: uppercase;
+        }
+
+        .status-pill.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-pill.approved {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-pill.rejected {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Contact details grid */
+        .applicant-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-item {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-item span {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .info-item a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            transition: var(--transition-smooth);
+        }
+
+        .info-item a:hover {
+            color: var(--neon-purple);
+            text-decoration: underline;
+        }
+
+        /* Q&A section */
+        .interview-responses {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .interview-header {
+            font-weight: 700;
+            font-size: 14px;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .interview-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .qa-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .qa-q {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .qa-a {
+            font-size: 13.5px;
+            color: #fff;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 12px;
+            border-radius: 8px;
+            border-left: 2px solid var(--neon-purple);
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        /* Card Actions */
+        .card-actions-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13.5px;
+            border-radius: 8px;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-reject {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .btn-reject:hover {
+            background: rgba(239, 68, 68, 0.25);
+            color: #fff;
+        }
+
+        /* Passcode Modal Gate */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 5, 14, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .passcode-modal {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .passcode-modal h3 {
+            font-family: var(--font-header);
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .passcode-modal p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .passcode-input {
+            width: 100%;
+            padding: 14px;
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 4px;
+            font-family: monospace;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            outline: none;
+            margin-bottom: 16px;
+        }
+
+        .passcode-input:focus {
+            border-color: var(--neon-purple);
+        }
+
+        /* Overlay for Copying Discord Invite */
+        .discord-copy-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition-smooth);
+        }
+
+        .discord-copy-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .discord-copy-modal {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .discord-copy-modal h3 {
+            font-family: var(--font-header);
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .discord-copy-modal p {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .discord-link-input {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .whatsapp-template-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            color: #d1d5db;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .modal-action-btns {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Responsiveness for Admin Panel */
+        @media (max-width: 900px) {
+            .filter-panel {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .filter-panel {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .admin-header-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-actions .btn {
+                flex: 1;
+            }
+
+            .card-actions-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+            }
+
+            .action-btns {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .action-btns button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body style="align-items: center; justify-content: flex-start;">
+
+    <!-- Passcode Modal Gate -->
+    <div class="modal-overlay" id="passcodeGate">
+        <div class="passcode-modal">
+            <div class="logo-icon" style="margin: 0 auto 16px;">P</div>
+            <h3>Pragen.ai Admin</h3>
+            <p>Please enter your secure administrator passcode to manage applications.</p>
+            <input type="password" class="passcode-input" id="adminPasscodeInput" maxlength="15" placeholder="••••••••">
+            <button class="btn btn-primary" style="width:100%;" onclick="validatePasscode()">Unlock Dashboard</button>
+            <p id="passcodeError" style="color:var(--error); font-size:12.5px; margin-top:10px; display:none;">Incorrect passcode. Please try again.</p>
+        </div>
+    </div>
+
+    <!-- WhatsApp / Discord Messenger Modal Overlay -->
+    <div class="discord-copy-modal-overlay" id="discordModal">
+        <div class="discord-copy-modal">
+            <h3>Approve & Invite</h3>
+            <p>Enter the Discord link below. A WhatsApp/Email notification text is generated automatically for you to copy.</p>
+            
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="discordInviteUrl">Discord Invite Link</label>
+                <input type="url" class="discord-link-input" id="discordInviteUrl" value="https://discord.gg/pragen-ai-invite" oninput="regenerateTemplate()">
+            </div>
+
+            <div class="form-group">
+                <label>WhatsApp Notification Message (Pre-formatted)</label>
+                <div class="whatsapp-template-box" id="whatsappTemplate">Generating template...</div>
+            </div>
+
+            <div class="modal-action-btns">
+                <button class="btn btn-secondary btn-sm" onclick="closeApproveModal()">Cancel</button>
+                <button class="btn btn-primary btn-sm" onclick="copyTemplateAndApprove()">
+                    Copy Message & Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Gradients -->
+    <div class="glow-bg-blob blob-purple"></div>
+    <div class="glow-bg-blob blob-blue"></div>
+
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header-row">
+            <div>
+                <header class="logo-area" style="margin: 0;">
+                    <span class="logo-icon">P</span>
+                    <span class="logo-text">Pragen<span>.ai</span> Dashboard</span>
+                </header>
+                <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 4px;">Review and manage student applications for the Pragen.ai Community.</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="logoutAdmin()">Lock</button>
+                <button class="btn btn-primary" id="exportBtn" onclick="exportToCSV()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="metrics-row">
+            <div class="metric-card">
+                <div class="metric-val" id="metricTotal">0</div>
+                <div class="metric-label">Total Applicants</div>
+            </div>
+            <div class="metric-card pending">
+                <div class="metric-val" id="metricPending">0</div>
+                <div class="metric-label">Pending Review</div>
+            </div>
+            <div class="metric-card approved">
+                <div class="metric-val" id="metricApproved">0</div>
+                <div class="metric-label">Approved</div>
+            </div>
+            <div class="metric-card rejected">
+                <div class="metric-val" id="metricRejected">0</div>
+                <div class="metric-label">Rejected</div>
+            </div>
+        </div>
+
+        <!-- Filters Grid -->
+        <div class="filter-panel">
+            <div class="filter-group">
+                <label for="searchBar">Search Applicants</label>
+                <input type="text" id="searchBar" placeholder="Search by name, college, email..." oninput="applyFilters()">
+            </div>
+
+            <div class="filter-group">
+                <label for="statusFilter">Status</label>
+                <select id="statusFilter" onchange="applyFilters()">
+                    <option value="All">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="stateFilter">State / Region</label>
+                <select id="stateFilter" onchange="applyFilters()">
+                    <option value="All">All States</option>
+                    <!-- Filled dynamically -->
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sortOrder">Sort Date</label>
+                <select id="sortOrder" onchange="applyFilters()">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Applicants List -->
+        <div class="applicants-list" id="applicantsList">
+            <div class="no-records">Loading applications database...</div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

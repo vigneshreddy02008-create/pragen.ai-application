@@ -1,0 +1,929 @@
+/* ==========================================================================
+   Design Tokens & Variables
+   ========================================================================== */
+:root {
+    --bg-dark: #080810;
+    --card-bg: rgba(17, 18, 24, 0.75);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-focus: #5865f2;
+    
+    /* Colors */
+    --neon-blue: #3b82f6;
+    --neon-purple: #8b5cf6;
+    --brand-indigo: #5865f2;
+    
+    /* Semantic Colors */
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #555964;
+    --error: #ef4444;
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.08);
+    
+    /* Typography */
+    --font-header: 'Space Grotesk', sans-serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+    
+    /* Transitions */
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   Reset & Base Styles
+   ========================================================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    line-height: 1.5;
+}
+
+/* Grid Overlay Background */
+.grid-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Ambient Background Blobs */
+.glow-bg-blob {
+    position: fixed;
+    width: 50vw;
+    height: 50vw;
+    border-radius: 50%;
+    filter: blur(140px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.blob-purple {
+    background: var(--neon-purple);
+    top: -20%;
+    left: -10%;
+}
+
+.blob-blue {
+    background: var(--neon-blue);
+    bottom: -20%;
+    right: -10%;
+}
+
+/* ==========================================================================
+   Layout Containers
+   ========================================================================== */
+.app-container {
+    width: 100%;
+    max-width: 680px;
+    padding: 40px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Header Styles */
+.app-header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header-nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-icon {
+    background: linear-gradient(135deg, var(--neon-blue) 0%, var(--brand-indigo) 100%);
+    color: #fff;
+    font-family: var(--font-header);
+    font-weight: 700;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.logo-text {
+    font-family: var(--font-header);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+}
+
+.logo-text span {
+    background: linear-gradient(135deg, #a5f3fc 0%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.check-status-btn {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+    height: auto !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.check-status-btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff !important;
+}
+
+/* Status indicator badge */
+.status-indicator-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.04);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #10b981;
+    margin-bottom: 20px;
+}
+
+.badge-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #10b981;
+}
+
+/* Titles */
+.main-title {
+    font-family: var(--font-header);
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    color: #ffffff;
+    margin-bottom: 16px;
+}
+
+.gradient-title {
+    background: linear-gradient(90deg, #60a5fa 0%, #818cf8 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    font-size: 48px;
+}
+
+.main-description {
+    color: var(--text-secondary);
+    font-size: 15px;
+    max-width: 580px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+/* Description Pills */
+.pills-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+    max-width: 580px;
+}
+
+.pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+}
+
+.pill-blue {
+    background: rgba(59, 130, 246, 0.04);
+    border-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+.pill-check {
+    margin-right: 4px;
+    color: #60a5fa;
+}
+
+.tagline {
+    display: none;
+}
+
+/* ==========================================================================
+   Glassmorphic Card
+   ========================================================================== */
+.form-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 32px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Stepper Progress Bar */
+.stepper {
+    margin: 0 auto 36px auto;
+    max-width: 480px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.stepper-line-bg {
+    position: absolute;
+    top: 16px;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    z-index: 1;
+}
+
+.stepper-line-progress {
+    position: absolute;
+    top: 16px;
+    left: 12%;
+    height: 1px;
+    background: var(--brand-indigo);
+    z-index: 1;
+    transition: width 0.35s ease;
+}
+
+.steps-indicators {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+    width: 100%;
+}
+
+.step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    text-align: center;
+}
+
+.node-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0d0d12;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-header);
+    font-weight: 700;
+    font-size: 13px;
+    transition: var(--transition-smooth);
+}
+
+.node-label {
+    font-family: var(--font-header);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    transition: var(--transition-smooth);
+}
+
+.step-node.active .node-circle {
+    border-color: var(--brand-indigo);
+    background: #0d0d12;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.35);
+}
+
+.step-node.active .node-label {
+    color: #ffffff;
+}
+
+.step-node.completed .node-circle {
+    background: var(--brand-indigo);
+    border-color: var(--brand-indigo);
+    color: #fff;
+}
+
+.step-node.completed .node-label {
+    color: var(--brand-indigo);
+}
+
+.mobile-step-counter {
+    display: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ==========================================================================
+   Form Card Headers & Sections
+   ========================================================================== */
+.card-step-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.step-icon-box {
+    width: 44px;
+    height: 44px;
+    background: rgba(88, 101, 242, 0.12);
+    border: 1px solid rgba(88, 101, 242, 0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-indigo);
+}
+
+.step-icon-box svg {
+    width: 20px;
+    height: 20px;
+}
+
+.step-header-text h3 {
+    font-family: var(--font-header);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.step-header-text p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Section Dividers */
+.form-section-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 16px 0;
+    width: 100%;
+}
+
+.form-section-divider::before,
+.form-section-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.form-section-divider::before {
+    margin-right: 1em;
+}
+
+.form-section-divider::after {
+    margin-left: 1em;
+}
+
+.form-section-divider span {
+    font-family: var(--font-header);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Form Step Layout & Input styling
+   ========================================================================== */
+.form-step {
+    display: none;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.form-step.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group.full-width {
+    grid-column: span 2;
+}
+
+label {
+    font-family: var(--font-header);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.required {
+    color: var(--error);
+    margin-left: 2px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    font-size: 13.5px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-focus);
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.2);
+}
+
+/* Dropdown arrow custom design */
+select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555964' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 14px;
+    padding-right: 40px;
+}
+
+select option {
+    background-color: #111218;
+    color: #fff;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Phone Input with unified prefix */
+.phone-input-wrapper {
+    display: flex;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+}
+
+.phone-prefix {
+    background: rgba(255, 255, 255, 0.02);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    font-family: var(--font-header);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+.phone-input-wrapper input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    flex: 1;
+}
+
+.phone-input-wrapper:focus-within {
+    border-color: var(--border-focus);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.2);
+}
+
+/* Character counters */
+.char-count {
+    align-self: flex-end;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.char-count span {
+    font-weight: 600;
+}
+
+.char-count.met {
+    color: var(--success);
+}
+
+/* Field Validation Errors */
+.form-group.invalid input,
+.form-group.invalid select,
+.form-group.invalid textarea,
+.form-group.invalid .phone-input-wrapper {
+    border-color: var(--error);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.12);
+}
+
+.error-msg {
+    color: var(--error);
+    font-size: 11px;
+    display: none;
+    margin-top: 2px;
+}
+
+.form-group.invalid .error-msg {
+    display: block;
+}
+
+/* ==========================================================================
+   Buttons & Actions
+   ========================================================================== */
+.form-actions {
+    margin-top: 32px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.form-actions-stack {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 24px;
+    font-family: var(--font-header);
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    border: none;
+    outline: none;
+}
+
+.btn-primary {
+    background-color: var(--brand-indigo);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.25);
+}
+
+.btn-primary:hover {
+    background-color: #4752c4;
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.35);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.btn-continue {
+    width: 100%;
+    padding: 14px;
+    letter-spacing: 0.5px;
+}
+
+.btn-back-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-header);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    padding: 8px 16px;
+    transition: var(--transition-smooth);
+}
+
+.btn-back-link:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* Spinner icon inside buttons */
+.icon {
+    width: 16px;
+    height: 16px;
+}
+
+.submit-loader {
+    animation: rotate 1s linear infinite;
+}
+
+.loader-circle {
+    opacity: 0.25;
+}
+
+@keyframes rotate {
+    100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Success Screen
+   ========================================================================== */
+.success-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 12px 0;
+    opacity: 0;
+    transform: scale(0.96);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.success-screen.active {
+    display: flex;
+    opacity: 1;
+    transform: scale(1);
+}
+
+.success-icon-wrapper {
+    margin-bottom: 20px;
+}
+
+.success-circle {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: var(--success-bg);
+    border: 1.5px solid var(--success);
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.success-check {
+    width: 32px;
+    height: 32px;
+}
+
+.success-screen h2 {
+    font-family: var(--font-header);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.success-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(88, 101, 242, 0.1);
+    border: 1px solid rgba(88, 101, 242, 0.2);
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #818cf8;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.success-text-content {
+    max-width: 500px;
+    margin-bottom: 24px;
+}
+
+.success-text-content p {
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    margin-bottom: 10px;
+}
+
+.success-text-content p.decision-alert {
+    color: #fff;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 14px;
+    border-radius: 12px;
+    border-left: 3px solid var(--neon-blue);
+    margin-top: 14px;
+}
+
+.info-card {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 14px;
+    padding: 20px;
+    max-width: 500px;
+    text-align: left;
+    margin-bottom: 24px;
+}
+
+.info-card h4 {
+    font-family: var(--font-header);
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+
+.info-card ul {
+    list-style: none;
+}
+
+.info-card li {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 6px;
+}
+
+.info-card li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--neon-blue);
+    font-weight: bold;
+}
+
+@keyframes scaleUp {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   Footer Styles
+   ========================================================================== */
+.app-footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 10px 0;
+}
+
+/* ==========================================================================
+   Media Queries & Responsiveness (Mobile vs Laptop)
+   ========================================================================== */
+
+/* Laptop / Desktop Layouts (Large screens) */
+@media (min-width: 768px) {
+    .app-container {
+        padding: 60px 24px;
+    }
+}
+
+/* Tablet & Mobile Layouts (Under 768px) */
+@media (max-width: 767px) {
+    body {
+        padding: 0;
+        justify-content: flex-start;
+    }
+
+    .app-container {
+        padding: 24px 12px;
+        gap: 24px;
+    }
+
+    .form-card {
+        padding: 24px 16px;
+        border-radius: 16px;
+    }
+
+    .main-title {
+        font-size: 32px;
+    }
+
+    .gradient-title {
+        font-size: 36px;
+    }
+
+    .stepper {
+        margin-bottom: 28px;
+    }
+
+    /* Hide horizontal nodes text labels on mobile and use visual steps + progress bar */
+    .steps-indicators {
+        display: none;
+    }
+
+    .mobile-step-counter {
+        display: block;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr; /* Force single column on mobile */
+        gap: 16px;
+    }
+
+    .form-group.full-width {
+        grid-column: span 1;
+    }
+
+    .btn {
+        width: 100%; /* Make buttons full width on mobile for easier thumb tap */
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+
+    .form-actions-stack {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .success-screen h2 {
+        font-size: 24px;
+    }
+}

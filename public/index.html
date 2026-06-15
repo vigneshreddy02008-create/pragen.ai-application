@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pragen.ai — Apply for Access</title>
+    <!-- Google Fonts for retro-futuristic headings and clean sans-serif inputs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Grid Overlay Background -->
+    <div class="grid-overlay"></div>
+    <div class="glow-bg-blob blob-purple"></div>
+    <div class="glow-bg-blob blob-blue"></div>
+
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="app-header">
+            <div class="header-nav-row">
+                <div class="logo-area">
+                    <span class="logo-icon">P</span>
+                    <span class="logo-text">Pragen<span>.ai</span></span>
+                </div>
+                <button type="button" class="btn btn-secondary check-status-btn" onclick="openStatusModal()">Check Status</button>
+            </div>
+
+            <!-- Green Status Badge -->
+            <div class="status-indicator-badge">
+                <span class="badge-dot"></span>
+                <span>OPEN TO ALL STUDENTS ACROSS INDIA</span>
+            </div>
+
+            <!-- Title -->
+            <h1 class="main-title">
+                Apply to Join <br>
+                <span class="gradient-title">Pragen.ai</span>
+            </h1>
+
+            <p class="main-description">
+                A curated AI/ML community for the next generation of builders. We accept passionate students from Class 11, 12, and all BTech years across India.
+            </p>
+
+            <!-- Pills Row -->
+            <div class="pills-row">
+                <span class="pill pill-blue"><span class="pill-check">✓</span> Class 11th</span>
+                <span class="pill pill-blue"><span class="pill-check">✓</span> Class 12th</span>
+                <span class="pill pill-blue"><span class="pill-check">✓</span> BTech All Years</span>
+                <span class="pill">All Colleges Welcome</span>
+                <span class="pill">All India</span>
+                <span class="pill">100% Free</span>
+            </div>
+        </header>
+
+        <!-- Main Form Card -->
+        <main class="form-card">
+            <!-- 4-Step Stepper -->
+            <div class="stepper">
+                <div class="stepper-line-bg"></div>
+                <div class="stepper-line-progress" id="progressBar" style="width: 12.5%;"></div>
+                
+                <div class="steps-indicators">
+                    <div class="step-node active" id="node1">
+                        <div class="node-circle">1</div>
+                        <span class="node-label">PERSONAL</span>
+                    </div>
+                    <div class="step-node" id="node2">
+                        <div class="node-circle">2</div>
+                        <span class="node-label">EDUCATION</span>
+                    </div>
+                    <div class="step-node" id="node3">
+                        <div class="node-circle">3</div>
+                        <span class="node-label">INTERVIEW</span>
+                    </div>
+                    <div class="step-node" id="node4">
+                        <div class="node-circle">4</div>
+                        <span class="node-label">ACCESS</span>
+                    </div>
+                </div>
+                <div class="mobile-step-counter" id="mobileStepCounter">Step 1 of 3: Personal Details</div>
+            </div>
+
+            <!-- Form Body -->
+            <form id="applicationForm" novalidate>
+                <!-- STEP 1: Personal Profile -->
+                <div class="form-step active" id="step1">
+                    <div class="card-step-header">
+                        <div class="step-icon-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v-2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="step-header-text">
+                            <h3>Personal Information</h3>
+                            <p>Step 1 of 3 · Basic details</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="name">FULL NAME <span class="required">*</span></label>
+                            <input type="text" id="name" name="name" placeholder="Your full name" required>
+                            <span class="error-msg" id="nameError">Full name is required</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="displayName">DISPLAY NAME <span class="required">*</span></label>
+                            <input type="text" id="displayName" name="displayName" placeholder="What we call you" required>
+                            <span class="error-msg" id="displayNameError">Display name is required</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="email">GMAIL ADDRESS <span class="required">*</span></label>
+                            <input type="email" id="email" name="email" placeholder="yourname@gmail.com" required>
+                            <span class="error-msg" id="emailError">Please enter a valid Gmail address</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="phone">PHONE NUMBER <span class="required">*</span></label>
+                            <div class="phone-input-wrapper">
+                                <div class="phone-prefix">IN +91</div>
+                                <input type="tel" id="phone" name="phone" placeholder="10-digit mobile number" required>
+                            </div>
+                            <span class="error-msg" id="phoneError">Please enter a valid 10-digit mobile number</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="cityState">CITY & STATE <span class="required">*</span></label>
+                            <input type="text" id="cityState" name="cityState" placeholder="e.g. Hyderabad, Telangana" required>
+                            <span class="error-msg" id="cityStateError">City & State is required (format: City, State)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary btn-continue" onclick="nextStep(1)">
+                            CONTINUE → EDUCATION DETAILS
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Academic Details -->
+                <div class="form-step" id="step2">
+                    <div class="card-step-header">
+                        <div class="step-icon-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5zM6 12.5V16a6 6 0 0012 0v-3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="step-header-text">
+                            <h3>Education Information</h3>
+                            <p>Step 2 of 3 · Academic details</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <!-- Divider 1 -->
+                        <div class="form-section-divider full-width">
+                            <span>COLLEGE INFO</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="collegeName">COLLEGE / UNIVERSITY NAME <span class="required">*</span></label>
+                            <input type="text" id="collegeName" name="collegeName" placeholder="e.g. VIT, SRM, JNTU, Manipal..." required>
+                            <span class="error-msg" id="collegeNameError">College name is required</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="collegeState">COLLEGE CITY & STATE <span class="required">*</span></label>
+                            <input type="text" id="collegeState" name="collegeState" placeholder="e.g. Hyderabad, Telangana" required>
+                            <span class="error-msg" id="collegeStateError">College city & state is required</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="year">YEAR OF STUDY <span class="required">*</span></label>
+                            <select id="year" name="year" required>
+                                <option value="" disabled selected>Select year</option>
+                                <option value="1st Year">1st Year</option>
+                                <option value="2nd Year">2nd Year</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                                <option value="Class 11th">Class 11th</option>
+                                <option value="Class 12th">Class 12th</option>
+                            </select>
+                            <span class="error-msg" id="yearError">Please select your year of study</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="branch">BRANCH <span class="required">*</span></label>
+                            <select id="branch" name="branch" required>
+                                <option value="" disabled selected>Select branch</option>
+                                <option value="Computer Science (CSE)">Computer Science (CSE)</option>
+                                <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                <option value="Electronics & Communication (ECE)">Electronics & Comm (ECE)</option>
+                                <option value="Electrical & Electronics (EEE)">Electrical & Electronics (EEE)</option>
+                                <option value="Mechanical (MECH)">Mechanical (MECH)</option>
+                                <option value="Civil (CIVIL)">Civil (CIVIL)</option>
+                                <option value="School / General Science">School / General Science</option>
+                                <option value="Other / Non-BTech">Other / Non-BTech</option>
+                            </select>
+                            <span class="error-msg" id="branchError">Branch is required</span>
+                        </div>
+
+                        <!-- Divider 2 -->
+                        <div class="form-section-divider full-width">
+                            <span>ONLINE PRESENCE</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="linkedin">LINKEDIN PROFILE URL</label>
+                            <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/yourname (optional)">
+                            <span class="error-msg" id="linkedinError">Enter a valid LinkedIn URL</span>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="github">GITHUB PROFILE URL</label>
+                            <input type="url" id="github" name="github" placeholder="https://github.com/yourname (optional)">
+                            <span class="error-msg" id="githubError">Enter a valid GitHub URL</span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions-stack">
+                        <button type="button" class="btn btn-primary btn-continue" onclick="nextStep(2)">
+                            CONTINUE → INTERVIEW QUESTIONS
+                        </button>
+                        <button type="button" class="btn-back-link" onclick="prevStep(2)">
+                            ← BACK
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Mindset & Vision Interview -->
+                <div class="form-step" id="step3">
+                    <div class="card-step-header">
+                        <div class="step-icon-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="step-header-text">
+                            <h3>Interview Questions</h3>
+                            <p>Step 3 of 3 · Mindset screening</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-section-divider full-width">
+                            <span>MINDSET SCREENING</span>
+                        </div>
+
+                        <!-- Goal Selector -->
+                        <div class="form-group full-width">
+                            <label for="q4">WHAT IS YOUR PRIMARY GOAL FOR THE NEXT 1-2 YEARS? <span class="required">*</span></label>
+                            <select id="q4" name="q4" required>
+                                <option value="" disabled selected>Choose the option that matches your ambition</option>
+                                <option value="Build a Startup & Create Jobs">Build a Startup & Create Jobs (Entrepreneurship)</option>
+                                <option value="Master Gen AI & Practical Engineering">Master Gen AI & Practical Engineering</option>
+                                <option value="Collaborate on Real Projects & Build Portfolio">Collaborate on Real Projects & Build Portfolio</option>
+                                <option value="Gain Skills & Find Internships">Gain Skills & Find Internships</option>
+                            </select>
+                            <span class="error-msg" id="q4Error">Please select an option</span>
+                        </div>
+
+                        <!-- Mindset Q1 -->
+                        <div class="form-group full-width">
+                            <label for="q1">WHY BREAK AWAY FROM TRADITIONAL "BYHEARTING" (ROTE LEARNING)? <span class="required">*</span></label>
+                            <textarea id="q1" name="q1" rows="3" placeholder="Why do you want to build actual hands-on skills? How do you want to change your learning approach?" required></textarea>
+                            <div class="char-count"><span id="q1Char">0</span>/50 characters minimum</div>
+                            <span class="error-msg" id="q1Error">Please write at least 50 characters to express your drive.</span>
+                        </div>
+
+                        <!-- Mindset Q2 -->
+                        <div class="form-group full-width">
+                            <label for="q2">STARTUP IDEA OR REAL-WORLD PROBLEM PASSIONATE ABOUT SOLVING? <span class="required">*</span></label>
+                            <textarea id="q2" name="q2" rows="3" placeholder="Tell us what you want to build or the specific problem you want to fix..." required></textarea>
+                            <div class="char-count"><span id="q2Char">0</span>/50 characters minimum</div>
+                            <span class="error-msg" id="q2Error">Please write at least 50 characters to describe your startup idea or problem focus.</span>
+                        </div>
+
+                        <!-- Mindset Q3 -->
+                        <div class="form-group full-width">
+                            <label for="q3">HOW WILL YOU CONTRIBUTE TO "STUDENTS HELPING STUDENTS" COMMUNITY? <span class="required">*</span></label>
+                            <textarea id="q3" name="q3" rows="3" placeholder="How would you share your learning, collaborate, or lead in the community?" required></textarea>
+                            <div class="char-count"><span id="q3Char">0</span>/50 characters minimum</div>
+                            <span class="error-msg" id="q3Error">Please write at least 50 characters on how you want to contribute.</span>
+                        </div>
+
+                        <!-- Mindset Q5 -->
+                        <div class="form-group full-width">
+                            <label for="q5">WHAT WOULD YOU BUILD WITH UNLIMITED, FULLY UPGRADED AI CAPABILITIES? <span class="required">*</span></label>
+                            <textarea id="q5" name="q5" rows="3" placeholder="If you had access to max model capability without restrictions, what would you build?" required></textarea>
+                            <div class="char-count"><span id="q5Char">0</span>/50 characters minimum</div>
+                            <span class="error-msg" id="q5Error">Please write at least 50 characters to describe what you would build.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions-stack">
+                        <button type="submit" class="btn btn-primary btn-continue" id="submitBtn">
+                            SUBMIT APPLICATION
+                            <svg class="icon submit-loader" style="display:none;" viewBox="0 0 24 24"><circle class="loader-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor"/></svg>
+                        </button>
+                        <button type="button" class="btn-back-link" onclick="prevStep(3)">
+                            ← BACK
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- STEP 4: Success Message -->
+            <div class="success-screen" id="successScreen">
+                <div class="success-icon-wrapper">
+                    <div class="success-circle">
+                        <svg class="success-check" viewBox="0 0 24 24">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <h2>Application Received!</h2>
+                <div class="success-badge">Registration Successfully Completed</div>
+                
+                <div class="success-text-content">
+                    <p>Thank you for taking the first step to lead and build the future with <strong>Pragen.ai</strong>. We have successfully received your application!</p>
+                    <p class="decision-alert">We review every profile manually. You will receive a final decision and details about Discord community access on your WhatsApp / Email within <strong>48 hours</strong>.</p>
+                </div>
+
+                <div class="info-card">
+                    <h4>What's Next?</h4>
+                    <ul>
+                        <li>We check your ambition, goals, and willingness to collaborate.</li>
+                        <li>If approved, we will send your invitation link to join our official Discord server.</li>
+                        <li>Prepare to learn, build startups, and solve real-world problems!</li>
+                    </ul>
+                </div>
+
+                <a href="/" class="btn btn-primary">Done</a>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p>&copy; 2026 Pragen.ai. Let's learn, build, and lead together.</p>
+        </footer>
+    </div>
+
+    <!-- Status Check Modal -->
+    <div class="discord-copy-modal-overlay" id="statusModal" style="z-index: 1100;">
+        <div class="discord-copy-modal" style="text-align: center;">
+            <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin-bottom: 8px;">Check Application Status</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">Enter the 10-digit phone number you used during registration.</p>
+            
+            <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+                <label for="statusPhoneInput">PHONE NUMBER</label>
+                <input type="tel" id="statusPhoneInput" placeholder="Enter your 10-digit number" maxlength="10">
+                <span class="error-msg" id="statusPhoneError">Please enter a valid 10-digit phone number</span>
+            </div>
+
+            <!-- Result Box -->
+            <div id="statusResultBox" style="display: none; margin-bottom: 20px; padding: 16px; border-radius: 12px; text-align: left; border: 1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.2);">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Applicant: <strong id="resName" style="color: #fff;">-</strong></div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Status: <span id="resStatusBadge" class="status-pill pending">-</span></div>
+                <p id="resMessage" style="font-size: 13.5px; color: #fff; line-height: 1.4; margin: 0;"></p>
+            </div>
+
+            <div class="modal-action-btns" style="justify-content: center; width: 100%; gap: 12px;">
+                <button class="btn btn-secondary btn-sm" onclick="closeStatusModal()" style="flex: 1;">Close</button>
+                <button class="btn btn-primary btn-sm" id="fetchStatusBtn" onclick="queryStatus()" style="flex: 1;">Check Status</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
