@@ -12,40 +12,15 @@ DATA_FILE = os.path.join(DATA_DIR, "applications.json")
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "public")
 ADMIN_PASSCODE = "pragen2026"  # Secure passcode to access admin endpoints
 
-is_vercel = bool(os.environ.get("KV_REST_API_URL") and os.environ.get("KV_REST_API_TOKEN"))
-
 # Ensure data directory and file exist locally
-if not is_vercel:
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump([], f, indent=4)
+if not os.path.exists(DATA_FILE):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump([], f, indent=4)
 
 def get_applications():
-    url = os.environ.get("KV_REST_API_URL")
-    token = os.environ.get("KV_REST_API_TOKEN")
-    if url and token:
-        try:
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(["GET", "applications"]).encode("utf-8"),
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                },
-                method="POST"
-            )
-            with urllib.request.urlopen(req) as response:
-                res_data = json.loads(response.read().decode("utf-8"))
-                if "error" in res_data:
-                    raise Exception(res_data["error"])
-                result = res_data.get("result")
-                return json.loads(result) if result is not None else []
-        except Exception as e:
-            print(f"Error loading from Vercel KV: {e}, falling back to filesystem")
-    
     if not os.path.exists(DATA_FILE):
         return []
     try:
@@ -55,27 +30,6 @@ def get_applications():
         return []
 
 def save_applications(applications):
-    url = os.environ.get("KV_REST_API_URL")
-    token = os.environ.get("KV_REST_API_TOKEN")
-    if url and token:
-        try:
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(["SET", "applications", json.dumps(applications)]).encode("utf-8"),
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                },
-                method="POST"
-            )
-            with urllib.request.urlopen(req) as response:
-                res_data = json.loads(response.read().decode("utf-8"))
-                if "error" in res_data:
-                    raise Exception(res_data["error"])
-                return
-        except Exception as e:
-            print(f"Error saving to Vercel KV: {e}, falling back to filesystem")
-            
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     with open(DATA_FILE, "w", encoding="utf-8") as f:

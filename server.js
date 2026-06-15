@@ -9,87 +9,48 @@ const DATA_FILE = path.join(DATA_DIR, 'applications.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const ADMIN_PASSCODE = 'pragen2026';
 
-let kv = null;
-const isVercel = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-
-if (isVercel) {
-    try {
-        const { createClient } = require('@vercel/kv');
-        kv = createClient({
-            url: process.env.KV_REST_API_URL,
-            token: process.env.KV_REST_API_TOKEN,
-        });
-        console.log("Using Vercel KV Database in production mode");
-    } catch (err) {
-        console.error("Failed to load Vercel KV client, falling back to filesystem:", err);
-    }
+// Ensure data folder and file exist locally
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
 }
-
-if (!isVercel) {
-    // Ensure data folder and file exist locally
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(DATA_FILE)) {
-        fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
-    }
+if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
 }
 
 // Helper to load applications
 function getApplications(callback) {
-    if (kv) {
-        kv.get('applications')
-            .then(data => {
-                const apps = data || [];
-                callback(null, apps);
-            })
-            .catch(err => {
+    fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                callback(null, []);
+            } else {
                 callback(err, null);
-            });
-    } else {
-        fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
-            if (err) {
-                if (err.code === 'ENOENT') {
-                    callback(null, []);
-                } else {
-                    callback(err, null);
-                }
-                return;
             }
-            let applications = [];
-            try {
-                applications = JSON.parse(fileData);
-            } catch (e) {
-                applications = [];
-            }
-            callback(null, applications);
-        });
-    }
+            return;
+        }
+        let applications = [];
+        try {
+            applications = JSON.parse(fileData);
+        } catch (e) {
+            applications = [];
+        }
+        callback(null, applications);
+    });
 }
 
 // Helper to save applications
 function saveApplications(applications, callback) {
-    if (kv) {
-        kv.set('applications', applications)
-            .then(() => {
-                callback(null);
-            })
-            .catch(err => {
-                callback(err);
-            });
-    } else {
-        if (!fs.existsSync(DATA_DIR)) {
-            try {
-                fs.mkdirSync(DATA_DIR, { recursive: true });
-            } catch (err) {
-                callback(err);
-                return;
-            }
-        }
-        fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+    if (!fs.existsSync(DATA_DIR)) {
+        try {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        } catch (err) {
             callback(err);
-        });
+            return;
+        }
     }
+    fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+        callback(err);
+    });
 }
 
 // Helper to serve static files

@@ -90,11 +90,7 @@ function validateUrl(url) {
     }
 }
 
-function validateCityState(cityState) {
-    // Basic check for City, State structure
-    const trimmed = cityState.trim();
-    return trimmed.length > 3 && trimmed.includes(',');
-}
+
 
 function validateStep(stepNum) {
     let isValid = true;
@@ -117,13 +113,15 @@ function validateStep(stepNum) {
         const displayNameVal = document.getElementById('displayName').value;
         const emailVal = document.getElementById('email').value;
         const phoneVal = document.getElementById('phone').value;
-        const cityStateVal = document.getElementById('cityState').value;
+        const cityVal = document.getElementById('city').value;
+        const stateVal = document.getElementById('state').value;
 
         setValidity('name', nameVal.trim().length > 0);
         setValidity('displayName', displayNameVal.trim().length > 0);
         setValidity('email', validateEmail(emailVal));
         setValidity('phone', validatePhone(phoneVal));
-        setValidity('cityState', validateCityState(cityStateVal));
+        setValidity('city', cityVal.trim().length > 0);
+        setValidity('state', stateVal !== "");
     } 
     
     else if (stepNum === 2) {
@@ -245,20 +243,14 @@ async function handleFormSubmit(e) {
     const loaderIcon = submitBtn.querySelector('.submit-loader');
     if (loaderIcon) loaderIcon.style.display = 'inline-block';
 
-    // Parse City and State composite string
-    const cityStateVal = document.getElementById('cityState').value;
-    const parts = cityStateVal.split(',');
-    const city = parts[0] ? parts[0].trim() : '';
-    const state = parts[1] ? parts[1].trim() : city; // default to city if no comma
-
     // Build form data object
     const formData = {
         name: document.getElementById('name').value,
         displayName: document.getElementById('displayName').value,
         email: document.getElementById('email').value,
         phone: document.getElementById('phone').value,
-        state: state,
-        city: city,
+        state: document.getElementById('state').value,
+        city: document.getElementById('city').value,
         linkedin: document.getElementById('linkedin').value,
         github: document.getElementById('github').value,
         collegeName: document.getElementById('collegeName').value,
