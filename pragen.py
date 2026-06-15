@@ -164,7 +164,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == "/api/apply":
             # Validate required fields
-            required_fields = ["name", "email", "phone", "state", "city", "collegeName", "collegeState", "branch", "year"]
+            required_fields = ["name", "email", "phone", "state", "city", "collegeName", "collegeCity", "collegeState", "branch", "year"]
             missing = [f for f in required_fields if not data.get(f)]
             if missing:
                 self.send_response(400)
@@ -172,7 +172,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": f"Missing required fields: {', '.join(missing)}"}).encode("utf-8"))
                 return
-
+ 
             # Append metadata
             import uuid
             application = {
@@ -185,6 +185,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
                 "linkedin": data.get("linkedin", "").strip(),
                 "github": data.get("github", "").strip(),
                 "collegeName": data["collegeName"].strip(),
+                "collegeCity": data["collegeCity"].strip(),
                 "collegeState": data["collegeState"].strip(),
                 "branch": data["branch"].strip(),
                 "year": data["year"].strip(),

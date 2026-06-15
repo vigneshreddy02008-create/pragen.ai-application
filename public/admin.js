@@ -171,7 +171,7 @@ function renderApplicants() {
                 <div class="info-item">Phone: <span><a href="https://wa.me/91${app.phone}" target="_blank" rel="noopener">${app.phone} (WhatsApp)</a></span></div>
                 <div class="info-item">LinkedIn: <span>${linkedinLink}</span></div>
                 <div class="info-item">GitHub: <span>${githubLink}</span></div>
-                <div class="info-item" style="grid-column: span 2;">College: <span>${app.collegeName} (${app.collegeState})</span></div>
+                <div class="info-item" style="grid-column: span 2;">College: <span>${app.collegeName} (${app.collegeCity ? app.collegeCity + ', ' : ''}${app.collegeState})</span></div>
             </div>
 
             <div class="interview-responses">
@@ -307,7 +307,12 @@ function regenerateTemplate() {
     const discordLink = document.getElementById('discordInviteUrl').value.trim();
     const templateBox = document.getElementById('whatsappTemplate');
 
-    const message = `Hi ${app.name}! Great news! Your application to join Pragen.ai has been approved! 🚀\n\nWe love your drive to break away from traditional "byhearting" and build startups. Join our official student Discord server using the invitation link below to connect with fellow B.Tech builders and start collaborating:\n👉 ${discordLink}\n\nLet's Learn, Build, and Grow together!\n- Team Pragen.ai`;
+    let firstName = app.name.trim().split(/\s+/)[0];
+    if (firstName) {
+        firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    }
+
+    const message = `🚀 Congratulations, ${firstName}.\n\nWe're pleased to inform you that you've been selected to join *Pragen AI*.\n\nYour application stood out, and we're excited to welcome you into a community built for students who choose to take initiative, embrace curiosity, and create their own opportunities.\n\nThis is just the beginning.\n\nJoin the official Pragen AI Discord server below and start connecting with fellow builders, innovators, and future founders:\n\n👉 ${discordLink}\n\nWelcome to the ecosystem.\n\n*Learn. Build. Grow.*\n\n— Team Pragen AI`;
     
     templateBox.textContent = message;
 }
@@ -345,7 +350,7 @@ function exportToCSV() {
     // CSV Headers
     const headers = [
         "Application ID", "Timestamp", "Name", "Display Name", "Email", "Phone", "State", "City",
-        "LinkedIn", "GitHub", "College Name", "College State", "Branch", "Year",
+        "LinkedIn", "GitHub", "College Name", "College City", "College State", "Branch", "Year",
         "Primary Goal", "Q1: Escape Rote Learning", "Q2: Startup Idea/Problem", "Q3: Contribution", "Q5: Unlimited AI Tool Build", "Status"
     ];
 
@@ -362,6 +367,7 @@ function exportToCSV() {
         app.linkedin,
         app.github,
         app.collegeName,
+        app.collegeCity || '',
         app.collegeState,
         app.branch,
         app.year,

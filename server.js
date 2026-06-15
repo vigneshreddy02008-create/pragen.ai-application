@@ -134,7 +134,7 @@ const server = http.createServer((req, res) => {
                 const data = JSON.parse(body);
                 
                 // Validate fields
-                const required = ['name', 'displayName', 'email', 'phone', 'state', 'city', 'collegeName', 'collegeState', 'branch', 'year'];
+                const required = ['name', 'displayName', 'email', 'phone', 'state', 'city', 'collegeName', 'collegeCity', 'collegeState', 'branch', 'year'];
                 const missing = required.filter(f => !data[f]);
                 if (missing.length > 0) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -171,6 +171,7 @@ const server = http.createServer((req, res) => {
                         linkedin: (data.linkedin || '').trim(),
                         github: (data.github || '').trim(),
                         collegeName: data.collegeName.trim(),
+                        collegeCity: data.collegeCity.trim(),
                         collegeState: data.collegeState.trim(),
                         branch: data.branch.trim(),
                         year: data.year.trim(),

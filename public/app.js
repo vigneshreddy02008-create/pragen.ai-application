@@ -28,8 +28,8 @@ const stepNames = [
     "Mindset & Vision"
 ];
 
-// Word Count Config
-const wordLimitConfig = {
+// Character Count Config
+const charLimitConfig = {
     q1: { min: 20, span: document.getElementById('q1Char'), error: document.getElementById('q1Error') },
     q2: { min: 20, span: document.getElementById('q2Char'), error: document.getElementById('q2Error') },
     q3: { min: 20, span: document.getElementById('q3Char'), error: document.getElementById('q3Error') },
@@ -38,11 +38,11 @@ const wordLimitConfig = {
 
 // Initialize listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Word Limit Listeners
-    Object.keys(wordLimitConfig).forEach(id => {
+    // Character Limit Listeners
+    Object.keys(charLimitConfig).forEach(id => {
         const textarea = document.getElementById(id);
         if (textarea) {
-            textarea.addEventListener('input', () => updateWordCount(id, textarea.value));
+            textarea.addEventListener('input', () => updateCharCount(id, textarea.value));
         }
     });
 
@@ -55,20 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUI();
 });
 
-function countWords(text) {
-    const trimmed = text.trim();
-    if (trimmed === "") return 0;
-    return trimmed.split(/\s+/).length;
-}
-
-// Update word counts dynamically
-function updateWordCount(id, text) {
-    const config = wordLimitConfig[id];
-    const count = countWords(text);
-    config.span.textContent = count;
+// Update character counts dynamically
+function updateCharCount(id, text) {
+    const config = charLimitConfig[id];
+    const length = text.trim().length;
+    config.span.textContent = length;
 
     const counterDiv = config.span.parentElement;
-    if (count >= config.min) {
+    if (length >= config.min) {
         counterDiv.classList.add('met');
     } else {
         counterDiv.classList.remove('met');
@@ -132,6 +126,7 @@ function validateStep(stepNum) {
     
     else if (stepNum === 2) {
         const collegeVal = document.getElementById('collegeName').value;
+        const colCityVal = document.getElementById('collegeCity').value;
         const colStateVal = document.getElementById('collegeState').value;
         const branchVal = document.getElementById('branch').value;
         const yearVal = document.getElementById('year').value;
@@ -139,7 +134,8 @@ function validateStep(stepNum) {
         const githubVal = document.getElementById('github').value;
 
         setValidity('collegeName', collegeVal.trim().length > 0);
-        setValidity('collegeState', colStateVal.trim().length > 0);
+        setValidity('collegeCity', colCityVal.trim().length > 0);
+        setValidity('collegeState', colStateVal !== "");
         setValidity('branch', branchVal !== "");
         setValidity('year', yearVal !== "");
         setValidity('linkedin', validateUrl(linkedinVal));
@@ -154,10 +150,10 @@ function validateStep(stepNum) {
         const q5Val = document.getElementById('q5').value;
 
         setValidity('q4', q4Val !== "");
-        setValidity('q1', countWords(q1Val) >= wordLimitConfig.q1.min);
-        setValidity('q2', countWords(q2Val) >= wordLimitConfig.q2.min);
-        setValidity('q3', countWords(q3Val) >= wordLimitConfig.q3.min);
-        setValidity('q5', countWords(q5Val) >= wordLimitConfig.q5.min);
+        setValidity('q1', q1Val.trim().length >= charLimitConfig.q1.min);
+        setValidity('q2', q2Val.trim().length >= charLimitConfig.q2.min);
+        setValidity('q3', q3Val.trim().length >= charLimitConfig.q3.min);
+        setValidity('q5', q5Val.trim().length >= charLimitConfig.q5.min);
     }
 
     return isValid;
@@ -260,6 +256,7 @@ async function handleFormSubmit(e) {
         linkedin: document.getElementById('linkedin').value,
         github: document.getElementById('github').value,
         collegeName: document.getElementById('collegeName').value,
+        collegeCity: document.getElementById('collegeCity').value,
         collegeState: document.getElementById('collegeState').value,
         branch: document.getElementById('branch').value,
         year: document.getElementById('year').value,
