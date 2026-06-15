@@ -98,6 +98,8 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
         # Map root path to index.html
         if path == "/":
             self.path = "/index.html"
+        elif path == "/admin":
+            self.path = "/admin.html"
         else:
             self.path = path
 

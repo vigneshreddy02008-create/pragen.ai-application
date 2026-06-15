@@ -382,6 +382,8 @@ const server = http.createServer((req, res) => {
     let reqPath = pathname;
     if (reqPath === '/') {
         reqPath = '/index.html';
+    } else if (reqPath === '/admin') {
+        reqPath = '/admin.html';
     }
 
     // Security check for directory traversal

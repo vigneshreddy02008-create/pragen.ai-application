@@ -28,21 +28,21 @@ const stepNames = [
     "Mindset & Vision"
 ];
 
-// Character Count Config
-const charLimitConfig = {
-    q1: { min: 50, span: document.getElementById('q1Char'), error: document.getElementById('q1Error') },
-    q2: { min: 50, span: document.getElementById('q2Char'), error: document.getElementById('q2Error') },
-    q3: { min: 50, span: document.getElementById('q3Char'), error: document.getElementById('q3Error') },
-    q5: { min: 50, span: document.getElementById('q5Char'), error: document.getElementById('q5Error') }
+// Word Count Config
+const wordLimitConfig = {
+    q1: { min: 20, span: document.getElementById('q1Char'), error: document.getElementById('q1Error') },
+    q2: { min: 20, span: document.getElementById('q2Char'), error: document.getElementById('q2Error') },
+    q3: { min: 20, span: document.getElementById('q3Char'), error: document.getElementById('q3Error') },
+    q5: { min: 20, span: document.getElementById('q5Char'), error: document.getElementById('q5Error') }
 };
 
 // Initialize listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Character Limit Listeners
-    Object.keys(charLimitConfig).forEach(id => {
+    // Word Limit Listeners
+    Object.keys(wordLimitConfig).forEach(id => {
         const textarea = document.getElementById(id);
         if (textarea) {
-            textarea.addEventListener('input', () => updateCharCount(id, textarea.value));
+            textarea.addEventListener('input', () => updateWordCount(id, textarea.value));
         }
     });
 
@@ -55,14 +55,20 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUI();
 });
 
-// Update character counts dynamically
-function updateCharCount(id, text) {
-    const config = charLimitConfig[id];
-    const length = text.trim().length;
-    config.span.textContent = length;
+function countWords(text) {
+    const trimmed = text.trim();
+    if (trimmed === "") return 0;
+    return trimmed.split(/\s+/).length;
+}
+
+// Update word counts dynamically
+function updateWordCount(id, text) {
+    const config = wordLimitConfig[id];
+    const count = countWords(text);
+    config.span.textContent = count;
 
     const counterDiv = config.span.parentElement;
-    if (length >= config.min) {
+    if (count >= config.min) {
         counterDiv.classList.add('met');
     } else {
         counterDiv.classList.remove('met');
@@ -148,10 +154,10 @@ function validateStep(stepNum) {
         const q5Val = document.getElementById('q5').value;
 
         setValidity('q4', q4Val !== "");
-        setValidity('q1', q1Val.trim().length >= charLimitConfig.q1.min);
-        setValidity('q2', q2Val.trim().length >= charLimitConfig.q2.min);
-        setValidity('q3', q3Val.trim().length >= charLimitConfig.q3.min);
-        setValidity('q5', q5Val.trim().length >= charLimitConfig.q5.min);
+        setValidity('q1', countWords(q1Val) >= wordLimitConfig.q1.min);
+        setValidity('q2', countWords(q2Val) >= wordLimitConfig.q2.min);
+        setValidity('q3', countWords(q3Val) >= wordLimitConfig.q3.min);
+        setValidity('q5', countWords(q5Val) >= wordLimitConfig.q5.min);
     }
 
     return isValid;
