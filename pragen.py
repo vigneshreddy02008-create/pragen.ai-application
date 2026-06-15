@@ -96,9 +96,10 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
 
         # Default static file serving from public directory
         # Map root path to index.html
+        lower_path = path.lower()
         if path == "/":
             self.path = "/index.html"
-        elif path == "/admin":
+        elif path == "/admin" or path == "/admin/" or lower_path == "/admin.html" or lower_path == "/adminhtml":
             self.path = "/admin.html"
         else:
             self.path = path

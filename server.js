@@ -380,9 +380,10 @@ const server = http.createServer((req, res) => {
 
     // Serve Static Files
     let reqPath = pathname;
+    const lowerPath = reqPath.toLowerCase();
     if (reqPath === '/') {
         reqPath = '/index.html';
-    } else if (reqPath === '/admin') {
+    } else if (reqPath === '/admin' || reqPath === '/admin/' || lowerPath === '/admin.html' || lowerPath === '/adminhtml') {
         reqPath = '/admin.html';
     }
 
