@@ -32,7 +32,7 @@ async function validatePasscode() {
             errorMsg.style.display = 'block';
         }
     } catch (err) {
-        alert('Server network error. Ensure the backend Python server is running.');
+        alert('Server network error. Ensure the backend server is running.');
     }
 }
 
@@ -60,7 +60,7 @@ async function fetchApplications() {
             logoutAdmin();
         }
     } catch (err) {
-        listElement.innerHTML = `<div class="no-records" style="color:var(--error);">Failed to load database. Ensure Python server is running.</div>`;
+        listElement.innerHTML = `<div class="no-records" style="color:var(--error);">Failed to load database. Ensure the server is running.</div>`;
     }
 }
 
