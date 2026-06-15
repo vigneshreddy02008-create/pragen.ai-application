@@ -6,19 +6,38 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
+import tempfile
+
 PORT = 8000
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 DATA_FILE = os.path.join(DATA_DIR, "applications.json")
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "public")
 ADMIN_PASSCODE = "pragen2026"  # Secure passcode to access admin endpoints
 
-# Ensure data directory and file exist locally
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
+# Fallback to temp directory if we are running in a read-only environment like Vercel
+if os.environ.get("VERCEL") or os.environ.get("NOW_REGION"):
+    DATA_DIR = os.path.join(tempfile.gettempdir(), "pragen-data")
+    DATA_FILE = os.path.join(DATA_DIR, "applications.json")
 
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump([], f, indent=4)
+# Ensure data directory and file exist locally
+try:
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    if not os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, indent=4)
+except Exception as err:
+    print(f"Failed to initialize data folder, falling back to temp: {err}")
+    try:
+        DATA_DIR = os.path.join(tempfile.gettempdir(), "pragen-data")
+        DATA_FILE = os.path.join(DATA_DIR, "applications.json")
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+        if not os.path.exists(DATA_FILE):
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump([], f, indent=4)
+    except Exception as temp_err:
+        print(f"Even temp data folder initialization failed: {temp_err}")
 
 def get_applications():
     if not os.path.exists(DATA_FILE):
@@ -294,8 +313,11 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
 
 def run(server_class=http.server.HTTPServer, handler_class=PragenHandler):
     # Ensure public folder exists
-    if not os.path.exists(PUBLIC_DIR):
-        os.makedirs(PUBLIC_DIR)
+    try:
+        if not os.path.exists(PUBLIC_DIR):
+            os.makedirs(PUBLIC_DIR)
+    except Exception as e:
+        print(f"Warning: Could not create public directory: {e}")
         
     server_address = ("", PORT)
     httpd = server_class(server_address, handler_class)

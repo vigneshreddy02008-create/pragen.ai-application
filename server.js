@@ -3,18 +3,42 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+const os = require('os');
+
 const PORT = 8000;
-const DATA_DIR = path.join(__dirname, 'data');
-const DATA_FILE = path.join(DATA_DIR, 'applications.json');
+let DATA_DIR = path.join(__dirname, 'data');
+let DATA_FILE = path.join(DATA_DIR, 'applications.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const ADMIN_PASSCODE = 'pragen2026';
 
-// Ensure data folder and file exist locally
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+// Fallback to temp directory if we are running in a read-only environment like Vercel
+if (process.env.VERCEL || process.env.NOW_REGION) {
+    DATA_DIR = path.join(os.tmpdir(), 'pragen-data');
+    DATA_FILE = path.join(DATA_DIR, 'applications.json');
 }
-if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
+
+// Ensure data folder and file exist locally
+try {
+    if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DATA_FILE)) {
+        fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
+    }
+} catch (err) {
+    console.error('Failed to initialize local data store, falling back to temp:', err);
+    try {
+        DATA_DIR = path.join(os.tmpdir(), 'pragen-data');
+        DATA_FILE = path.join(DATA_DIR, 'applications.json');
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+        if (!fs.existsSync(DATA_FILE)) {
+            fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
+        }
+    } catch (tempErr) {
+        console.error('Even temp data storage initialization failed:', tempErr);
+    }
 }
 
 // Helper to load applications
