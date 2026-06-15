@@ -277,6 +277,63 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // API: Delete Application
+    if (pathname === '/api/applications/delete' && req.method === 'POST') {
+        const authHeader = req.headers['authorization'];
+        if (authHeader !== ADMIN_PASSCODE) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body);
+                const { id } = data;
+
+                if (!id) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Invalid ID' }));
+                    return;
+                }
+
+                fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+                    if (err) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Database read error' }));
+                        return;
+                    }
+
+                    let applications = JSON.parse(fileData);
+                    const originalLength = applications.length;
+                    applications = applications.filter(app => app.id !== id);
+
+                    if (applications.length === originalLength) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Applicant not found' }));
+                        return;
+                    }
+
+                    fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+                        if (err) {
+                            res.writeHead(500, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'Database save error' }));
+                            return;
+                        }
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, message: 'Application deleted successfully' }));
+                    });
+                });
+            } catch (e) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid JSON request' }));
+            }
+        });
+        return;
+    }
+
     // Serve Static Files
     let reqPath = pathname;
     if (reqPath === '/') {

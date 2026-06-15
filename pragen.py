@@ -238,6 +238,52 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
             return
 
+        elif path == "/api/applications/delete":
+            auth_header = self.headers.get("Authorization")
+            if auth_header != ADMIN_PASSCODE:
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Unauthorized"}).encode("utf-8"))
+                return
+
+            app_id = data.get("id")
+            if not app_id:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Invalid application ID"}).encode("utf-8"))
+                return
+
+            try:
+                deleted = False
+                with open(DATA_FILE, "r+", encoding="utf-8") as f:
+                    applications = json.load(f)
+                    original_len = len(applications)
+                    applications = [app for app in applications if app["id"] != app_id]
+                    if len(applications) < original_len:
+                        deleted = True
+                    
+                    if deleted:
+                        f.seek(0)
+                        json.dump(applications, f, indent=4)
+                        f.truncate()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": True, "message": "Application deleted successfully"}).encode("utf-8"))
+                    else:
+                        self.send_response(404)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"error": "Application not found"}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
         else:
             self.send_response(404)
             self.end_headers()

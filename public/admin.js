@@ -219,6 +219,7 @@ function renderApplicants() {
 function renderActionButtons(app) {
     if (app.status === 'Pending') {
         return `
+            <button class="btn btn-secondary btn-sm btn-delete" onclick="deleteApplication('${app.id}')">Delete</button>
             <button class="btn btn-secondary btn-sm btn-reject" onclick="updateStatus('${app.id}', 'Rejected')">Reject</button>
             <button class="btn btn-primary btn-sm btn-approve" onclick="openApproveModal('${app.id}')">Approve</button>
         `;
@@ -227,6 +228,7 @@ function renderActionButtons(app) {
             <span style="color:var(--success); font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
                 ✓ Approved
             </span>
+            <button class="btn btn-secondary btn-sm btn-delete" onclick="deleteApplication('${app.id}')">Delete</button>
             <button class="btn btn-secondary btn-sm" onclick="updateStatus('${app.id}', 'Pending')">Re-review</button>
             <button class="btn btn-secondary btn-sm btn-reject" onclick="updateStatus('${app.id}', 'Rejected')">Reject</button>
         `;
@@ -235,6 +237,7 @@ function renderActionButtons(app) {
             <span style="color:var(--error); font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
                 ✗ Rejected
             </span>
+            <button class="btn btn-secondary btn-sm btn-delete" onclick="deleteApplication('${app.id}')">Delete</button>
             <button class="btn btn-secondary btn-sm" onclick="updateStatus('${app.id}', 'Pending')">Re-review</button>
             <button class="btn btn-primary btn-sm btn-approve" onclick="openApproveModal('${app.id}')">Approve</button>
         `;
@@ -389,4 +392,34 @@ function exportToCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// Delete Application from Backend
+async function deleteApplication(id) {
+    if (!confirm("Are you sure you want to permanently delete this application?")) {
+        return;
+    }
+    const passcode = sessionStorage.getItem('pragen_admin_pass');
+    
+    try {
+        const response = await fetch('/api/applications/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': passcode
+            },
+            body: JSON.stringify({ id })
+        });
+
+        if (response.ok) {
+            // Remove locally from applications array
+            applications = applications.filter(a => a.id !== id);
+            calculateMetrics();
+            applyFilters();
+        } else {
+            alert('Failed to delete application. Check permissions.');
+        }
+    } catch (err) {
+        alert('API error deleting applicant.');
+    }
 }
