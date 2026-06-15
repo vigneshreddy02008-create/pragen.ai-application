@@ -9,12 +9,87 @@ const DATA_FILE = path.join(DATA_DIR, 'applications.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const ADMIN_PASSCODE = 'pragen2026';
 
-// Ensure data folder and file exist
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+let kv = null;
+const isVercel = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+
+if (isVercel) {
+    try {
+        const { createClient } = require('@vercel/kv');
+        kv = createClient({
+            url: process.env.KV_REST_API_URL,
+            token: process.env.KV_REST_API_TOKEN,
+        });
+        console.log("Using Vercel KV Database in production mode");
+    } catch (err) {
+        console.error("Failed to load Vercel KV client, falling back to filesystem:", err);
+    }
 }
-if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
+
+if (!isVercel) {
+    // Ensure data folder and file exist locally
+    if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DATA_FILE)) {
+        fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 4), 'utf8');
+    }
+}
+
+// Helper to load applications
+function getApplications(callback) {
+    if (kv) {
+        kv.get('applications')
+            .then(data => {
+                const apps = data || [];
+                callback(null, apps);
+            })
+            .catch(err => {
+                callback(err, null);
+            });
+    } else {
+        fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+            if (err) {
+                if (err.code === 'ENOENT') {
+                    callback(null, []);
+                } else {
+                    callback(err, null);
+                }
+                return;
+            }
+            let applications = [];
+            try {
+                applications = JSON.parse(fileData);
+            } catch (e) {
+                applications = [];
+            }
+            callback(null, applications);
+        });
+    }
+}
+
+// Helper to save applications
+function saveApplications(applications, callback) {
+    if (kv) {
+        kv.set('applications', applications)
+            .then(() => {
+                callback(null);
+            })
+            .catch(err => {
+                callback(err);
+            });
+    } else {
+        if (!fs.existsSync(DATA_DIR)) {
+            try {
+                fs.mkdirSync(DATA_DIR, { recursive: true });
+            } catch (err) {
+                callback(err);
+                return;
+            }
+        }
+        fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+            callback(err);
+        });
+    }
 }
 
 // Helper to serve static files
@@ -83,18 +158,11 @@ const server = http.createServer((req, res) => {
                 }
 
                 // Load existing database
-                fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+                getApplications((err, applications) => {
                     if (err) {
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Database read error' }));
                         return;
-                    }
-
-                    let applications = [];
-                    try {
-                        applications = JSON.parse(fileData);
-                    } catch (e) {
-                        applications = [];
                     }
 
                     // Check for spam duplicates
@@ -132,7 +200,7 @@ const server = http.createServer((req, res) => {
 
                     applications.push(newApp);
 
-                    fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+                    saveApplications(applications, (err) => {
                         if (err) {
                             res.writeHead(500, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ error: 'Database save error' }));
@@ -160,18 +228,11 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+        getApplications((err, applications) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Database read error' }));
                 return;
-            }
-
-            let applications = [];
-            try {
-                applications = JSON.parse(fileData);
-            } catch (e) {
-                applications = [];
             }
 
             // Find matching applicant by phone
@@ -201,14 +262,14 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+        getApplications((err, applications) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Database read error' }));
                 return;
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(fileData);
+            res.end(JSON.stringify(applications));
         });
         return;
     }
@@ -235,14 +296,13 @@ const server = http.createServer((req, res) => {
                     return;
                 }
 
-                fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+                getApplications((err, applications) => {
                     if (err) {
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Database read error' }));
                         return;
                     }
 
-                    let applications = JSON.parse(fileData);
                     let found = false;
 
                     applications = applications.map(app => {
@@ -259,7 +319,7 @@ const server = http.createServer((req, res) => {
                         return;
                     }
 
-                    fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+                    saveApplications(applications, (err) => {
                         if (err) {
                             res.writeHead(500, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ error: 'Database save error' }));
@@ -299,14 +359,13 @@ const server = http.createServer((req, res) => {
                     return;
                 }
 
-                fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
+                getApplications((err, applications) => {
                     if (err) {
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Database read error' }));
                         return;
                     }
 
-                    let applications = JSON.parse(fileData);
                     const originalLength = applications.length;
                     applications = applications.filter(app => app.id !== id);
 
@@ -316,7 +375,7 @@ const server = http.createServer((req, res) => {
                         return;
                     }
 
-                    fs.writeFile(DATA_FILE, JSON.stringify(applications, null, 4), 'utf8', (err) => {
+                    saveApplications(applications, (err) => {
                         if (err) {
                             res.writeHead(500, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ error: 'Database save error' }));

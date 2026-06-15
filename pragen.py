@@ -3,6 +3,7 @@ import socketserver
 import json
 import os
 import urllib.parse
+import urllib.request
 from datetime import datetime
 
 PORT = 8000
@@ -11,13 +12,74 @@ DATA_FILE = os.path.join(DATA_DIR, "applications.json")
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "public")
 ADMIN_PASSCODE = "pragen2026"  # Secure passcode to access admin endpoints
 
-# Ensure data directory and file exist
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
+is_vercel = bool(os.environ.get("KV_REST_API_URL") and os.environ.get("KV_REST_API_TOKEN"))
 
-if not os.path.exists(DATA_FILE):
+# Ensure data directory and file exist locally
+if not is_vercel:
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
+    if not os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, indent=4)
+
+def get_applications():
+    url = os.environ.get("KV_REST_API_URL")
+    token = os.environ.get("KV_REST_API_TOKEN")
+    if url and token:
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(["GET", "applications"]).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                if "error" in res_data:
+                    raise Exception(res_data["error"])
+                result = res_data.get("result")
+                return json.loads(result) if result is not None else []
+        except Exception as e:
+            print(f"Error loading from Vercel KV: {e}, falling back to filesystem")
+    
+    if not os.path.exists(DATA_FILE):
+        return []
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_applications(applications):
+    url = os.environ.get("KV_REST_API_URL")
+    token = os.environ.get("KV_REST_API_TOKEN")
+    if url and token:
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(["SET", "applications", json.dumps(applications)]).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                if "error" in res_data:
+                    raise Exception(res_data["error"])
+                return
+        except Exception as e:
+            print(f"Error saving to Vercel KV: {e}, falling back to filesystem")
+            
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
     with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump([], f, indent=4)
+        json.dump(applications, f, indent=4)
 
 class PragenHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -47,9 +109,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             try:
-                with open(DATA_FILE, "r", encoding="utf-8") as f:
-                    applications = json.load(f)
-                
+                applications = get_applications()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
@@ -161,22 +221,18 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
             }
 
             try:
-                # Load existing, append, save
-                with open(DATA_FILE, "r+", encoding="utf-8") as f:
-                    applications = json.load(f)
-                    # Check for duplicate email in pending/approved to avoid spam
-                    for app in applications:
-                        if app["email"] == application["email"] and app["status"] in ["Pending", "Approved"]:
-                            self.send_response(400)
-                            self.send_header("Content-Type", "application/json")
-                            self.end_headers()
-                            self.wfile.write(json.dumps({"error": "An application with this email is already being processed."}).encode("utf-8"))
-                            return
+                applications = get_applications()
+                # Check for duplicate email in pending/approved to avoid spam
+                for app in applications:
+                    if app["email"] == application["email"] and app["status"] in ["Pending", "Approved"]:
+                        self.send_response(400)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"error": "An application with this email is already being processed."}).encode("utf-8"))
+                        return
 
-                    applications.append(application)
-                    f.seek(0)
-                    json.dump(applications, f, indent=4)
-                    f.truncate()
+                applications.append(application)
+                save_applications(applications)
 
                 self.send_response(201)
                 self.send_header("Content-Type", "application/json")
@@ -210,27 +266,24 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 updated = False
-                with open(DATA_FILE, "r+", encoding="utf-8") as f:
-                    applications = json.load(f)
-                    for app in applications:
-                        if app["id"] == app_id:
-                            app["status"] = new_status
-                            updated = True
-                            break
-                    
-                    if updated:
-                        f.seek(0)
-                        json.dump(applications, f, indent=4)
-                        f.truncate()
-                        self.send_response(200)
-                        self.send_header("Content-Type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"success": True, "message": f"Status updated to {new_status}"}).encode("utf-8"))
-                    else:
-                        self.send_response(404)
-                        self.send_header("Content-Type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"error": "Application not found"}).encode("utf-8"))
+                applications = get_applications()
+                for app in applications:
+                    if app["id"] == app_id:
+                        app["status"] = new_status
+                        updated = True
+                        break
+                
+                if updated:
+                    save_applications(applications)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "message": f"Status updated to {new_status}"}).encode("utf-8"))
+                else:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Application not found"}).encode("utf-8"))
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
@@ -257,26 +310,23 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 deleted = False
-                with open(DATA_FILE, "r+", encoding="utf-8") as f:
-                    applications = json.load(f)
-                    original_len = len(applications)
-                    applications = [app for app in applications if app["id"] != app_id]
-                    if len(applications) < original_len:
-                        deleted = True
-                    
-                    if deleted:
-                        f.seek(0)
-                        json.dump(applications, f, indent=4)
-                        f.truncate()
-                        self.send_response(200)
-                        self.send_header("Content-Type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"success": True, "message": "Application deleted successfully"}).encode("utf-8"))
-                    else:
-                        self.send_response(404)
-                        self.send_header("Content-Type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"error": "Application not found"}).encode("utf-8"))
+                applications = get_applications()
+                original_len = len(applications)
+                applications = [app for app in applications if app["id"] != app_id]
+                if len(applications) < original_len:
+                    deleted = True
+                
+                if deleted:
+                    save_applications(applications)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "message": "Application deleted successfully"}).encode("utf-8"))
+                else:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Application not found"}).encode("utf-8"))
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
