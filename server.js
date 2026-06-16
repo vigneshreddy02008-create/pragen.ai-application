@@ -113,6 +113,49 @@ function loadFromSupabase(config, callback) {
     req.end();
 }
 
+function upsertToSupabase(config, newApplications, callback) {
+    if (newApplications.length === 0) {
+        callback(null);
+        return;
+    }
+
+    const urlString = `${config.url}/rest/v1/applications`;
+    const payload = JSON.stringify(newApplications);
+    const urlParsed = url.parse(urlString);
+
+    const options = {
+        hostname: urlParsed.hostname,
+        path: urlParsed.path,
+        method: 'POST',
+        headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates, return=minimal',
+            'Content-Length': Buffer.byteLength(payload)
+        }
+    };
+
+    const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                callback(null);
+            } else {
+                callback(new Error(`Supabase upsert error: ${res.statusCode}`));
+            }
+        });
+    });
+
+    req.on('error', (err) => {
+        callback(err);
+    });
+
+    req.write(payload);
+    req.end();
+}
+
 function saveToSupabase(config, newApplications, callback) {
     loadFromSupabase(config, (err, currentApps) => {
         if (err) {
@@ -125,46 +168,7 @@ function saveToSupabase(config, newApplications, callback) {
             .filter(id => !newIds.has(id));
 
         const proceedToUpsert = () => {
-            if (newApplications.length === 0) {
-                callback(null);
-                return;
-            }
-
-            const urlString = `${config.url}/rest/v1/applications`;
-            const payload = JSON.stringify(newApplications);
-            const urlParsed = url.parse(urlString);
-
-            const options = {
-                hostname: urlParsed.hostname,
-                path: urlParsed.path,
-                method: 'POST',
-                headers: {
-                    'apikey': config.key,
-                    'Authorization': `Bearer ${config.key}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates, return=minimal',
-                    'Content-Length': Buffer.byteLength(payload)
-                }
-            };
-
-            const req = https.request(options, (res) => {
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', () => {
-                    if (res.statusCode >= 200 && res.statusCode < 300) {
-                        callback(null);
-                    } else {
-                        callback(new Error(`Supabase upsert error: ${res.statusCode}`));
-                    }
-                });
-            });
-
-            req.on('error', (err) => {
-                callback(err);
-            });
-
-            req.write(payload);
-            req.end();
+            upsertToSupabase(config, newApplications, callback);
         };
 
         if (idsToDelete.length > 0) {
@@ -374,6 +378,11 @@ function serveStaticFile(res, filePath) {
                 res.end(`500 Internal Server Error: ${err.code}`);
             }
         } else {
+            // Prevent caching of HTML and JS so updates take effect immediately
+            if (ext === '.html' || ext === '.js') {
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+            }
             res.writeHead(200, { 'Content-Type': contentType });
             res.end(content, 'utf-8');
         }
@@ -382,6 +391,9 @@ function serveStaticFile(res, filePath) {
 
 // Create HTTP Server
 const server = http.createServer((req, res) => {
+    // Log every request for debugging
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+
     // CORS Headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -394,6 +406,7 @@ const server = http.createServer((req, res) => {
     }
 
     const parsedUrl = url.parse(req.url, true);
+
     const pathname = parsedUrl.pathname;
 
     // API: Submit Application
@@ -472,6 +485,18 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({ error: 'Invalid JSON body' }));
             }
         });
+        return;
+    }
+
+    // API: Get Supabase Configuration (Public/Safe fields only)
+    if (pathname === '/api/config' && req.method === 'GET') {
+        const supabaseUrl = process.env.SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || ''; // Never return service role key!
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            SUPABASE_URL: supabaseUrl,
+            SUPABASE_ANON_KEY: supabaseKey
+        }));
         return;
     }
 
@@ -672,6 +697,43 @@ const server = http.createServer((req, res) => {
 
     serveStaticFile(res, finalPath);
 });
+
+function migrateLocalDataToSupabase() {
+    const supabaseConfig = getSupabaseConfig();
+    if (!supabaseConfig) return;
+
+    loadFromLocalFile((err, localApps) => {
+        if (err || !localApps || localApps.length === 0) return;
+
+        console.log('Checking/Migrating local applications to Supabase...');
+        loadFromSupabase(supabaseConfig, (loadErr, currentApps) => {
+            let currentIds = new Set();
+            if (!loadErr && currentApps) {
+                currentIds = new Set(currentApps.map(app => app.id));
+            } else {
+                console.log('Failed to load existing Supabase applications or table is empty during migration.');
+            }
+
+            const appsToMigrate = localApps.filter(app => !currentIds.has(app.id));
+
+            if (appsToMigrate.length > 0) {
+                console.log(`Migrating ${appsToMigrate.length} local applications to Supabase...`);
+                upsertToSupabase(supabaseConfig, appsToMigrate, (upsertErr) => {
+                    if (upsertErr) {
+                        console.error('Migration to Supabase failed:', upsertErr.message);
+                    } else {
+                        console.log('Local applications migrated to Supabase successfully.');
+                    }
+                });
+            } else {
+                console.log('No new local applications to migrate (already synced).');
+            }
+        });
+    });
+}
+
+// Call migration on startup
+migrateLocalDataToSupabase();
 
 server.listen(PORT, () => {
     console.log(`Pragen.ai Server running at http://localhost:${PORT}/`);

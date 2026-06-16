@@ -1,6 +1,38 @@
 // State Management
 let currentStep = 1;
 const totalSteps = 3;
+let supabaseClient = null;
+
+// Wait up to 3s for deferred Supabase CDN script to load
+function waitForSupabase(timeout = 3000) {
+    return new Promise((resolve) => {
+        if (window.supabase) { resolve(window.supabase); return; }
+        const start = Date.now();
+        const poll = setInterval(() => {
+            if (window.supabase) { clearInterval(poll); resolve(window.supabase); }
+            else if (Date.now() - start > timeout) { clearInterval(poll); resolve(null); }
+        }, 100);
+    });
+}
+
+async function initSupabase() {
+    try {
+        const response = await fetch('/api/config');
+        if (!response.ok) return;
+        const config = await response.json();
+        if (config.SUPABASE_URL && config.SUPABASE_ANON_KEY) {
+            const lib = window.supabase || (await waitForSupabase());
+            if (lib) {
+                supabaseClient = lib.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                console.log('[App] Supabase client ready ✓');
+            }
+        } else {
+            console.log('[App] No Supabase credentials – using API fallback.');
+        }
+    } catch (err) {
+        console.warn('[App] Supabase init failed:', err.message);
+    }
+}
 
 // Elements
 const form = document.getElementById('applicationForm');
@@ -38,6 +70,9 @@ const charLimitConfig = {
 
 // Initialize listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Supabase
+    initSupabase();
+
     // Character Limit Listeners
     Object.keys(charLimitConfig).forEach(id => {
         const textarea = document.getElementById(id);
@@ -227,6 +262,44 @@ function updateUI() {
     });
 }
 
+function showSuccessState() {
+    // Move stepper to access stage (4)
+    currentStep = 4;
+    updateUI();
+
+    // Hide form & stepper labels, show success screen
+    form.style.display = 'none';
+    document.querySelector('.steps-indicators').style.display = 'none';
+    document.querySelector('.stepper-line-bg').style.display = 'none';
+    
+    successScreen.style.display = 'flex';
+    // Trigger animation frame for transition
+    setTimeout(() => {
+        successScreen.classList.add('active');
+    }, 50);
+
+    // Scroll to success screen
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function submitViaAPI(formData) {
+    const response = await fetch('/api/apply', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+        showSuccessState();
+    } else {
+        alert(result.error || 'Something went wrong. Please try again.');
+    }
+}
+
 // Form Submission
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -267,41 +340,64 @@ async function handleFormSubmit(e) {
         q5: document.getElementById('q5').value
     };
 
+    const newApp = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: formData.name.trim(),
+        displayName: formData.displayName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        state: formData.state.trim(),
+        city: formData.city.trim(),
+        linkedin: (formData.linkedin || '').trim(),
+        github: (formData.github || '').trim(),
+        collegeName: formData.collegeName.trim(),
+        collegeCity: formData.collegeCity.trim(),
+        collegeState: formData.collegeState.trim(),
+        branch: formData.branch.trim(),
+        year: formData.year.trim(),
+        q1: (formData.q1 || '').trim(),
+        q2: (formData.q2 || '').trim(),
+        q3: (formData.q3 || '').trim(),
+        q4: (formData.q4 || '').trim(),
+        q5: (formData.q5 || '').trim(),
+        status: 'Pending',
+        timestamp: new Date().toISOString()
+    };
+
     try {
-        const response = await fetch('/api/apply', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
+        if (supabaseClient) {
+            // Check for spam duplicates
+            const { data: duplicates, error: dupError } = await supabaseClient
+                .from('applications')
+                .select('id')
+                .eq('email', newApp.email)
+                .in('status', ['Pending', 'Approved']);
 
-        const result = await response.json();
+            if (dupError) throw dupError;
 
-        if (response.ok) {
-            // Move stepper to access stage (4)
-            currentStep = 4;
-            updateUI();
+            if (duplicates && duplicates.length > 0) {
+                alert('An application with this email is already being processed.');
+                return;
+            }
 
-            // Hide form & stepper labels, show success screen
-            form.style.display = 'none';
-            document.querySelector('.steps-indicators').style.display = 'none';
-            document.querySelector('.stepper-line-bg').style.display = 'none';
-            
-            successScreen.style.display = 'flex';
-            // Trigger animation frame for transition
-            setTimeout(() => {
-                successScreen.classList.add('active');
-            }, 50);
+            // Insert application
+            const { error: insertError } = await supabaseClient
+                .from('applications')
+                .insert([newApp]);
 
-            // Scroll to success screen
-            formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (insertError) throw insertError;
+
+            showSuccessState();
         } else {
-            alert(result.error || 'Something went wrong. Please try again.');
+            await submitViaAPI(formData);
         }
     } catch (err) {
-        console.error(err);
-        alert('Network error. Please make sure your server is running and try again.');
+        console.error('Supabase submit failed, falling back to API:', err);
+        try {
+            await submitViaAPI(formData);
+        } catch (apiErr) {
+            alert('Network error. Please make sure your server is running and try again.');
+        }
     } finally {
         submitBtn.disabled = false;
         if (loaderIcon) loaderIcon.style.display = 'none';
@@ -321,6 +417,32 @@ function openStatusModal() {
 
 function closeStatusModal() {
     document.getElementById('statusModal').classList.remove('active');
+}
+
+async function queryStatusViaAPI(phoneVal, resultBox, nameSpan, badgeSpan, msgPara) {
+    const response = await fetch(`/api/status?phone=${phoneVal}`);
+    const result = await response.json();
+
+    resultBox.style.display = 'block';
+
+    if (response.ok) {
+        nameSpan.textContent = result.name;
+        badgeSpan.textContent = result.status;
+        badgeSpan.className = `status-pill ${result.status.toLowerCase()}`;
+
+        if (result.status === 'Approved') {
+            msgPara.textContent = `Congratulations! Your application has been approved. 🎉 Please check your WhatsApp messages or Email inbox for your exclusive Discord community invitation link.`;
+        } else if (result.status === 'Pending') {
+            msgPara.textContent = `Your application is currently under manual review. ⏳ We check every profile to ensure a high-quality community of builders. We will message you with a final decision within 48 hours.`;
+        } else if (result.status === 'Rejected') {
+            msgPara.textContent = `Thank you for your interest in Pragen.ai. Unfortunately, we are unable to accept your application at this time. We encourage you to keep building and wish you the best.`;
+        }
+    } else {
+        nameSpan.textContent = 'Not Found';
+        badgeSpan.textContent = 'N/A';
+        badgeSpan.className = 'status-pill rejected';
+        msgPara.textContent = result.error || 'No application was found matching this phone number. Make sure the 10-digit number is correct, or fill out the form to apply!';
+    }
 }
 
 async function queryStatus() {
@@ -347,36 +469,51 @@ async function queryStatus() {
     resultBox.style.display = 'none';
 
     try {
-        const response = await fetch(`/api/status?phone=${phoneVal}`);
-        const result = await response.json();
+        if (supabaseClient) {
+            const { data: apps, error } = await supabaseClient
+                .from('applications')
+                .select('name, status, timestamp')
+                .eq('phone', phoneVal)
+                .order('timestamp', { ascending: false })
+                .limit(1);
 
-        resultBox.style.display = 'block';
+            if (error) throw error;
 
-        if (response.ok) {
-            nameSpan.textContent = result.name;
-            badgeSpan.textContent = result.status;
-            badgeSpan.className = `status-pill ${result.status.toLowerCase()}`;
+            resultBox.style.display = 'block';
 
-            if (result.status === 'Approved') {
-                msgPara.textContent = `Congratulations! Your application has been approved. 🎉 Please check your WhatsApp messages or Email inbox for your exclusive Discord community invitation link.`;
-            } else if (result.status === 'Pending') {
-                msgPara.textContent = `Your application is currently under manual review. ⏳ We check every profile to ensure a high-quality community of builders. We will message you with a final decision within 48 hours.`;
-            } else if (result.status === 'Rejected') {
-                msgPara.textContent = `Thank you for your interest in Pragen.ai. Unfortunately, we are unable to accept your application at this time. We encourage you to keep building and wish you the best.`;
+            if (apps && apps.length > 0) {
+                const result = apps[0];
+                nameSpan.textContent = result.name;
+                badgeSpan.textContent = result.status;
+                badgeSpan.className = `status-pill ${result.status.toLowerCase()}`;
+
+                if (result.status === 'Approved') {
+                    msgPara.textContent = `Congratulations! Your application has been approved. 🎉 Please check your WhatsApp messages or Email inbox for your exclusive Discord community invitation link.`;
+                } else if (result.status === 'Pending') {
+                    msgPara.textContent = `Your application is currently under manual review. ⏳ We check every profile to ensure a high-quality community of builders. We will message you with a final decision within 48 hours.`;
+                } else if (result.status === 'Rejected') {
+                    msgPara.textContent = `Thank you for your interest in Pragen.ai. Unfortunately, we are unable to accept your application at this time. We encourage you to keep building and wish you the best.`;
+                }
+            } else {
+                nameSpan.textContent = 'Not Found';
+                badgeSpan.textContent = 'N/A';
+                badgeSpan.className = 'status-pill rejected';
+                msgPara.textContent = 'No application was found matching this phone number. Make sure the 10-digit number is correct, or fill out the form to apply!';
             }
         } else {
-            nameSpan.textContent = 'Not Found';
-            badgeSpan.textContent = 'N/A';
-            badgeSpan.className = 'status-pill rejected';
-            msgPara.textContent = result.error || 'No application was found matching this phone number. Make sure the 10-digit number is correct, or fill out the form to apply!';
+            await queryStatusViaAPI(phoneVal, resultBox, nameSpan, badgeSpan, msgPara);
         }
     } catch (err) {
-        console.error(err);
-        resultBox.style.display = 'block';
-        nameSpan.textContent = 'Error';
-        badgeSpan.textContent = 'Failed';
-        badgeSpan.className = 'status-pill rejected';
-        msgPara.textContent = 'Failed to connect to the server. Please verify your internet connection and make sure the server is online.';
+        console.error('Supabase status check failed, falling back to API:', err);
+        try {
+            await queryStatusViaAPI(phoneVal, resultBox, nameSpan, badgeSpan, msgPara);
+        } catch (apiErr) {
+            resultBox.style.display = 'block';
+            nameSpan.textContent = 'Error';
+            badgeSpan.textContent = 'Failed';
+            badgeSpan.className = 'status-pill rejected';
+            msgPara.textContent = 'Failed to connect to the server. Please verify your internet connection and make sure the server is online.';
+        }
     } finally {
         fetchBtn.disabled = false;
         fetchBtn.textContent = 'Check Status';

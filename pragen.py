@@ -9,7 +9,7 @@ from datetime import datetime
 import tempfile
 
 # Load environment variables from .env file locally if it exists
-try {
+try:
     env_path = os.path.join(os.path.dirname(__file__), ".env")
     if os.path.exists(env_path):
         with open(env_path, "r", encoding="utf-8") as f:
@@ -117,19 +117,25 @@ def save_to_supabase(config, new_applications):
     upsert_to_supabase(config, new_applications)
 
 def get_applications():
+    print("get_applications() called")
     supabase_config = get_supabase_config()
+    print(f"supabase_config: {supabase_config}")
     if supabase_config:
         try:
+            print("Loading from Supabase...")
             return load_from_supabase(supabase_config)
         except Exception as e:
             print(f"Supabase load failed, falling back to Vercel KV or local: {e}")
             return load_from_kv_or_local()
     else:
+        print("No Supabase config, loading from KV or local...")
         return load_from_kv_or_local()
 
 def load_from_kv_or_local():
+    print("load_from_kv_or_local() called")
     kv_url = (os.environ.get("KV_REST_API_URL") or "").rstrip("/")
     kv_token = os.environ.get("KV_REST_API_TOKEN")
+    print(f"kv_url: {kv_url}, kv_token: {kv_token}")
 
     if kv_url and kv_token:
         try:
@@ -146,15 +152,21 @@ def load_from_kv_or_local():
             print(f"Error fetching from Vercel KV: {e}")
             return load_from_local_file()
     else:
+        print("No KV config, loading from local file...")
         return load_from_local_file()
 
 def load_from_local_file():
+    print(f"load_from_local_file() called, DATA_FILE: {DATA_FILE}")
     if not os.path.exists(DATA_FILE):
+        print("DATA_FILE does not exist!")
         return []
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
+            data = json.load(f)
+            print(f"Successfully loaded {len(data)} applications from local file")
+            return data
+    except Exception as e:
+        print(f"Failed to load from local file: {e}")
         return []
 
 def save_applications(applications):
@@ -214,6 +226,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/applications":
             # Admin check password
             auth_header = self.headers.get("Authorization")
+            print(f"Received Authorization header: {auth_header!r}")
             if auth_header != ADMIN_PASSCODE:
                 self.send_response(401)
                 self.send_header("Content-Type", "application/json")
@@ -227,6 +240,54 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps(applications).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
+        elif path == "/api/config":
+            supabase_url = os.environ.get("SUPABASE_URL") or ""
+            supabase_key = os.environ.get("SUPABASE_ANON_KEY") or ""
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "SUPABASE_URL": supabase_url,
+                "SUPABASE_ANON_KEY": supabase_key
+            }).encode("utf-8"))
+            return
+
+        elif path == "/api/status":
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            phone = query_params.get("phone", [""])[0].strip()
+
+            if not phone:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Phone number is required"}).encode("utf-8"))
+                return
+
+            try:
+                applications = get_applications()
+                app = next((a for a in applications if a.get("phone") == phone), None)
+
+                if app:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "name": app.get("name"),
+                        "status": app.get("status"),
+                        "timestamp": app.get("timestamp")
+                    }).encode("utf-8"))
+                else:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "No application found with this phone number."}).encode("utf-8"))
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
@@ -250,7 +311,9 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
         full_path = os.path.join(PUBLIC_DIR, rel_path)
 
         # Basic security check to prevent directory traversal
-        if not os.path.commonpath([PUBLIC_DIR, os.path.abspath(full_path)]) == PUBLIC_DIR:
+        norm_public_dir = os.path.normcase(os.path.abspath(PUBLIC_DIR))
+        norm_full_path = os.path.normcase(os.path.abspath(full_path))
+        if not os.path.commonpath([norm_public_dir, norm_full_path]) == norm_public_dir:
             self.send_response(403)
             self.end_headers()
             self.wfile.write(b"403 Forbidden")
@@ -304,7 +367,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == "/api/apply":
             # Validate required fields
-            required_fields = ["name", "email", "phone", "state", "city", "collegeName", "collegeCity", "collegeState", "branch", "year"]
+            required_fields = ["name", "displayName", "email", "phone", "state", "city", "collegeName", "collegeCity", "collegeState", "branch", "year"]
             missing = [f for f in required_fields if not data.get(f)]
             if missing:
                 self.send_response(400)
@@ -318,6 +381,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
             application = {
                 "id": str(uuid.uuid4())[:8],
                 "name": data["name"].strip(),
+                "displayName": data["displayName"].strip(),
                 "email": data["email"].strip().lower(),
                 "phone": data["phone"].strip(),
                 "state": data["state"].strip(),
@@ -333,6 +397,7 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
                 "q2": data.get("q2", "").strip(),
                 "q3": data.get("q3", "").strip(),
                 "q4": data.get("q4", "").strip(),
+                "q5": data.get("q5", "").strip(),
                 "status": "Pending",
                 "timestamp": datetime.now().isoformat()
             }
@@ -454,6 +519,38 @@ class PragenHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
+def migrate_local_data_to_supabase():
+    supabase_config = get_supabase_config()
+    if not supabase_config:
+        return
+
+    local_apps = load_from_local_file()
+    if not local_apps:
+        return
+
+    print("Checking/Migrating local applications to Supabase...")
+    try:
+        try:
+            current_apps = load_from_supabase(supabase_config)
+            current_ids = {app["id"] for app in current_apps}
+        except Exception as load_err:
+            print(f"Failed to load existing Supabase applications, assuming empty table: {load_err}")
+            current_ids = set()
+
+        apps_to_migrate = [app for app in local_apps if app["id"] not in current_ids]
+
+        if apps_to_migrate:
+            print(f"Migrating {len(apps_to_migrate)} new/missing applications to Supabase...")
+            upsert_to_supabase(supabase_config, apps_to_migrate)
+            print("Local applications migrated to Supabase successfully.")
+        else:
+            print("No new local applications to migrate (already synced).")
+    except Exception as e:
+        print(f"Migration to Supabase failed: {e}")
+
+# Call migration on startup
+migrate_local_data_to_supabase()
 
 def run(server_class=http.server.HTTPServer, handler_class=PragenHandler):
     # Ensure public folder exists
