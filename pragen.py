@@ -8,6 +8,22 @@ from datetime import datetime
 
 import tempfile
 
+# Load environment variables from .env file locally if it exists
+try {
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                trimmed = line.strip()
+                if trimmed and not trimmed.startswith("#"):
+                    parts = trimmed.split("=", 1)
+                    if len(parts) == 2:
+                        key = parts[0].strip()
+                        value = parts[1].strip().strip("'\"")
+                        os.environ[key] = value
+except Exception as e:
+    print(f"Failed to parse .env file: {e}")
+
 PORT = 8000
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 DATA_FILE = os.path.join(DATA_DIR, "applications.json")

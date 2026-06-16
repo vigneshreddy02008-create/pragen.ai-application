@@ -6,6 +6,27 @@ const url = require('url');
 
 const os = require('os');
 
+// Load environment variables from .env file locally if it exists
+try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        envContent.split('\n').forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const parts = trimmed.split('=');
+                if (parts.length >= 2) {
+                    const key = parts[0].trim();
+                    const value = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+                    process.env[key] = value;
+                }
+            }
+        });
+    }
+} catch (e) {
+    console.error('Failed to parse .env file:', e);
+}
+
 const PORT = 8000;
 let DATA_DIR = path.join(__dirname, 'data');
 let DATA_FILE = path.join(DATA_DIR, 'applications.json');
