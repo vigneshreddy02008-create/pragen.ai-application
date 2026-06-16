@@ -39,7 +39,100 @@ except Exception as err:
     except Exception as temp_err:
         print(f"Even temp data folder initialization failed: {temp_err}")
 
+def get_supabase_config():
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+    if supabase_url and supabase_key:
+        return {
+            "url": supabase_url.rstrip("/"),
+            "key": supabase_key
+        }
+    return None
+
+def load_from_supabase(config):
+    req_url = f"{config['url']}/rest/v1/applications?select=*"
+    req = urllib.request.Request(req_url)
+    req.add_header("apikey", config["key"])
+    req.add_header("Authorization", f"Bearer {config['key']}")
+    req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req, timeout=5) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+def delete_from_supabase(config, ids):
+    if not ids:
+        return
+    ids_str = ",".join(ids)
+    req_url = f"{config['url']}/rest/v1/applications?id=in.({ids_str})"
+    req = urllib.request.Request(req_url, method="DELETE")
+    req.add_header("apikey", config["key"])
+    req.add_header("Authorization", f"Bearer {config['key']}")
+    req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req, timeout=5) as response:
+        response.read()
+
+def upsert_to_supabase(config, applications):
+    if not applications:
+        return
+    req_url = f"{config['url']}/rest/v1/applications"
+    payload = json.dumps(applications).encode("utf-8")
+    req = urllib.request.Request(req_url, data=payload, method="POST")
+    req.add_header("apikey", config["key"])
+    req.add_header("Authorization", f"Bearer {config['key']}")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Prefer", "resolution=merge-duplicates, return=minimal")
+    with urllib.request.urlopen(req, timeout=5) as response:
+        response.read()
+
+def save_to_supabase(config, new_applications):
+    try:
+        current_apps = load_from_supabase(config)
+    except Exception:
+        current_apps = []
+
+    new_ids = {app["id"] for app in new_applications}
+    ids_to_delete = [app["id"] for app in current_apps if app["id"] not in new_ids]
+
+    if ids_to_delete:
+        try:
+            delete_from_supabase(config, ids_to_delete)
+        except Exception as e:
+            print(f"Supabase delete failed: {e}")
+
+    upsert_to_supabase(config, new_applications)
+
 def get_applications():
+    supabase_config = get_supabase_config()
+    if supabase_config:
+        try:
+            return load_from_supabase(supabase_config)
+        except Exception as e:
+            print(f"Supabase load failed, falling back to Vercel KV or local: {e}")
+            return load_from_kv_or_local()
+    else:
+        return load_from_kv_or_local()
+
+def load_from_kv_or_local():
+    kv_url = (os.environ.get("KV_REST_API_URL") or "").rstrip("/")
+    kv_token = os.environ.get("KV_REST_API_TOKEN")
+
+    if kv_url and kv_token:
+        try:
+            req_url = f"{kv_url}/get/applications"
+            req = urllib.request.Request(req_url)
+            req.add_header("Authorization", f"Bearer {kv_token}")
+            with urllib.request.urlopen(req, timeout=5) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                result = res_data.get("result")
+                if result:
+                    return json.loads(result)
+                return []
+        except Exception as e:
+            print(f"Error fetching from Vercel KV: {e}")
+            return load_from_local_file()
+    else:
+        return load_from_local_file()
+
+def load_from_local_file():
     if not os.path.exists(DATA_FILE):
         return []
     try:
@@ -49,6 +142,37 @@ def get_applications():
         return []
 
 def save_applications(applications):
+    supabase_config = get_supabase_config()
+    if supabase_config:
+        try:
+            save_to_supabase(supabase_config, applications)
+        except Exception as e:
+            print(f"Supabase save failed, falling back to Vercel KV or local: {e}")
+            save_to_kv_or_local(applications)
+    else:
+        save_to_kv_or_local(applications)
+
+def save_to_kv_or_local(applications):
+    kv_url = (os.environ.get("KV_REST_API_URL") or "").rstrip("/")
+    kv_token = os.environ.get("KV_REST_API_TOKEN")
+
+    if kv_url and kv_token:
+        try:
+            req_url = f"{kv_url}/set/applications"
+            payload = json.dumps(applications).encode("utf-8")
+            req = urllib.request.Request(req_url, data=payload, method="POST")
+            req.add_header("Authorization", f"Bearer {kv_token}")
+            req.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(req, timeout=5) as response:
+                response.read()
+            save_to_local_file(applications)
+        except Exception as e:
+            print(f"Error saving to Vercel KV: {e}")
+            save_to_local_file(applications)
+    else:
+        save_to_local_file(applications)
+
+def save_to_local_file(applications):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     with open(DATA_FILE, "w", encoding="utf-8") as f:

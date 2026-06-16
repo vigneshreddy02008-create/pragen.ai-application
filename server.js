@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
@@ -41,8 +42,199 @@ try {
     }
 }
 
+const getSupabaseConfig = () => {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    if (supabaseUrl && supabaseKey) {
+        return {
+            url: supabaseUrl.replace(/\/$/, ''),
+            key: supabaseKey
+        };
+    }
+    return null;
+};
+
+function loadFromSupabase(config, callback) {
+    const urlString = `${config.url}/rest/v1/applications?select=*`;
+    const urlParsed = url.parse(urlString);
+    const options = {
+        hostname: urlParsed.hostname,
+        path: urlParsed.path,
+        method: 'GET',
+        headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                try {
+                    const parsed = JSON.parse(data);
+                    callback(null, parsed);
+                } catch (e) {
+                    callback(e, null);
+                }
+            } else {
+                callback(new Error(`Supabase load error: ${res.statusCode}`), null);
+            }
+        });
+    });
+
+    req.on('error', (err) => {
+        callback(err, null);
+    });
+
+    req.end();
+}
+
+function saveToSupabase(config, newApplications, callback) {
+    loadFromSupabase(config, (err, currentApps) => {
+        if (err) {
+            currentApps = [];
+        }
+
+        const newIds = new Set(newApplications.map(app => app.id));
+        const idsToDelete = currentApps
+            .map(app => app.id)
+            .filter(id => !newIds.has(id));
+
+        const proceedToUpsert = () => {
+            if (newApplications.length === 0) {
+                callback(null);
+                return;
+            }
+
+            const urlString = `${config.url}/rest/v1/applications`;
+            const payload = JSON.stringify(newApplications);
+            const urlParsed = url.parse(urlString);
+
+            const options = {
+                hostname: urlParsed.hostname,
+                path: urlParsed.path,
+                method: 'POST',
+                headers: {
+                    'apikey': config.key,
+                    'Authorization': `Bearer ${config.key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates, return=minimal',
+                    'Content-Length': Buffer.byteLength(payload)
+                }
+            };
+
+            const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        callback(null);
+                    } else {
+                        callback(new Error(`Supabase upsert error: ${res.statusCode}`));
+                    }
+                });
+            });
+
+            req.on('error', (err) => {
+                callback(err);
+            });
+
+            req.write(payload);
+            req.end();
+        };
+
+        if (idsToDelete.length > 0) {
+            const deleteUrlString = `${config.url}/rest/v1/applications?id=in.(${idsToDelete.join(',')})`;
+            const deleteUrlParsed = url.parse(deleteUrlString);
+
+            const deleteOptions = {
+                hostname: deleteUrlParsed.hostname,
+                path: deleteUrlParsed.path,
+                method: 'DELETE',
+                headers: {
+                    'apikey': config.key,
+                    'Authorization': `Bearer ${config.key}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            const deleteReq = https.request(deleteOptions, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    proceedToUpsert();
+                });
+            });
+
+            deleteReq.on('error', (err) => {
+                console.error('Supabase delete request error:', err);
+                proceedToUpsert();
+            });
+
+            deleteReq.end();
+        } else {
+            proceedToUpsert();
+        }
+    });
+}
+
 // Helper to load applications
 function getApplications(callback) {
+    const supabaseConfig = getSupabaseConfig();
+    if (supabaseConfig) {
+        loadFromSupabase(supabaseConfig, (err, apps) => {
+            if (err) {
+                console.error('Supabase load failed, falling to Vercel KV/local:', err.message);
+                loadFromKVOrLocal(callback);
+            } else {
+                callback(null, apps);
+            }
+        });
+    } else {
+        loadFromKVOrLocal(callback);
+    }
+}
+
+function loadFromKVOrLocal(callback) {
+    const kvUrl = (process.env.KV_REST_API_URL || '').replace(/\/$/, '');
+    const kvToken = process.env.KV_REST_API_TOKEN;
+
+    if (kvUrl && kvToken) {
+        const urlString = `${kvUrl}/get/applications`;
+        const options = {
+            headers: {
+                'Authorization': `Bearer ${kvToken}`
+            }
+        };
+
+        https.get(urlString, options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed && parsed.result !== undefined && parsed.result !== null) {
+                        callback(null, JSON.parse(parsed.result));
+                    } else {
+                        callback(null, []);
+                    }
+                } catch (e) {
+                    callback(null, []);
+                }
+            });
+        }).on('error', (err) => {
+            console.error('Failed to fetch from Vercel KV, falling back to local file:', err);
+            loadFromLocalFile(callback);
+        });
+    } else {
+        loadFromLocalFile(callback);
+    }
+}
+
+function loadFromLocalFile(callback) {
     fs.readFile(DATA_FILE, 'utf8', (err, fileData) => {
         if (err) {
             if (err.code === 'ENOENT') {
@@ -64,6 +256,64 @@ function getApplications(callback) {
 
 // Helper to save applications
 function saveApplications(applications, callback) {
+    const supabaseConfig = getSupabaseConfig();
+    if (supabaseConfig) {
+        saveToSupabase(supabaseConfig, applications, (err) => {
+            if (err) {
+                console.error('Supabase save failed, falling to Vercel KV/local:', err.message);
+                saveToKVOrLocal(applications, callback);
+            } else {
+                callback(null);
+            }
+        });
+    } else {
+        saveToKVOrLocal(applications, callback);
+    }
+}
+
+function saveToKVOrLocal(applications, callback) {
+    const kvUrl = (process.env.KV_REST_API_URL || '').replace(/\/$/, '');
+    const kvToken = process.env.KV_REST_API_TOKEN;
+
+    if (kvUrl && kvToken) {
+        const urlString = `${kvUrl}/set/applications`;
+        const payload = JSON.stringify(applications);
+        const urlParsed = url.parse(urlString);
+
+        const options = {
+            hostname: urlParsed.hostname,
+            path: urlParsed.path,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${kvToken}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                saveToLocalFile(applications, () => {
+                    callback(null);
+                });
+            });
+        });
+
+        req.on('error', (err) => {
+            console.error('Failed to save to Vercel KV, falling back to local file:', err);
+            saveToLocalFile(applications, callback);
+        });
+
+        req.write(payload);
+        req.end();
+    } else {
+        saveToLocalFile(applications, callback);
+    }
+}
+
+function saveToLocalFile(applications, callback) {
     if (!fs.existsSync(DATA_DIR)) {
         try {
             fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -132,7 +382,7 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const data = JSON.parse(body);
-                
+
                 // Validate fields
                 const required = ['name', 'displayName', 'email', 'phone', 'state', 'city', 'collegeName', 'collegeCity', 'collegeState', 'branch', 'year'];
                 const missing = required.filter(f => !data[f]);

@@ -2,9 +2,21 @@
   "version": 2,
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/admin/", "destination": "/admin.html" },
-    { "source": "/admin.HTML", "destination": "/admin.html" },
-    { "source": "/adminhtml", "destination": "/admin.html" }
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin.HTML",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/adminhtml",
+      "destination": "/admin.html"
+    }
   ]
 }
