@@ -404,20 +404,22 @@ async function handleFormSubmit(e) {
     }
 }
 
-// Status Modal Navigation & Query handlers
-function openStatusModal() {
-    const modal = document.getElementById('statusModal');
-    modal.classList.add('active');
-    
-    // Clear previous details
-    document.getElementById('statusPhoneInput').value = '';
-    document.getElementById('statusPhoneInput').closest('.form-group').classList.remove('invalid');
-    document.getElementById('statusResultBox').style.display = 'none';
+// Scroll to inline status section
+function scrollToStatusSection() {
+    const section = document.getElementById('status-section');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Focus the phone input after scroll animation
+        setTimeout(() => {
+            const input = document.getElementById('statusPhoneInput');
+            if (input) input.focus();
+        }, 500);
+    }
 }
 
-function closeStatusModal() {
-    document.getElementById('statusModal').classList.remove('active');
-}
+// Legacy stub — modal removed, kept for safety
+function openStatusModal() { scrollToStatusSection(); }
+function closeStatusModal() {}
 
 async function queryStatusViaAPI(phoneVal, resultBox, nameSpan, badgeSpan, msgPara) {
     const response = await fetch(`/api/status?phone=${phoneVal}`);

@@ -3,7 +3,7 @@
 //  All data operations go to Supabase first, fall back to API
 // ─────────────────────────────────────────────────────────────
 
-const ADMIN_PASS = 'pragen2026'; // Admin passcode (also enforced server-side)
+const ADMIN_PASS = 'pragen@2008'; // Admin passcode (also enforced server-side)
 
 let applications = [];
 let filteredApplications = [];
@@ -158,12 +158,12 @@ async function fetchApplicationsViaAPI() {
 // ── Metrics ───────────────────────────────────────────────────
 function calculateMetrics() {
     const total = applications.length;
-    const pending  = applications.filter(a => a.status === 'Pending').length;
+    const pending = applications.filter(a => a.status === 'Pending').length;
     const approved = applications.filter(a => a.status === 'Approved').length;
     const rejected = applications.filter(a => a.status === 'Rejected').length;
 
-    document.getElementById('metricTotal').textContent    = total;
-    document.getElementById('metricPending').textContent  = pending;
+    document.getElementById('metricTotal').textContent = total;
+    document.getElementById('metricPending').textContent = pending;
     document.getElementById('metricApproved').textContent = approved;
     document.getElementById('metricRejected').textContent = rejected;
 }
@@ -183,14 +183,14 @@ function populateStateFilter() {
 
 // ── Filter + Sort + Render ────────────────────────────────────
 function applyFilters() {
-    const query     = document.getElementById('searchBar').value.trim().toLowerCase();
+    const query = document.getElementById('searchBar').value.trim().toLowerCase();
     const statusVal = document.getElementById('statusFilter').value;
-    const stateVal  = document.getElementById('stateFilter').value;
-    const sortVal   = document.getElementById('sortOrder').value;
+    const stateVal = document.getElementById('stateFilter').value;
+    const sortVal = document.getElementById('sortOrder').value;
 
     filteredApplications = applications.filter(app => {
         if (statusVal !== 'All' && app.status !== statusVal) return false;
-        if (stateVal  !== 'All' && app.state  !== stateVal)  return false;
+        if (stateVal !== 'All' && app.state !== stateVal) return false;
         if (query) {
             const fields = [app.name, app.collegeName, app.email, app.branch, app.state, app.city];
             return fields.some(f => (f || '').toLowerCase().includes(query));
@@ -320,10 +320,10 @@ function renderActionButtons(app) {
 }
 
 function toggleInterviewBody(id) {
-    const body    = document.getElementById(`interview-${id}`);
+    const body = document.getElementById(`interview-${id}`);
     const chevron = document.getElementById(`chevron-${id}`);
-    const open    = body.style.display === 'none';
-    body.style.display    = open ? 'flex' : 'none';
+    const open = body.style.display === 'none';
+    body.style.display = open ? 'flex' : 'none';
     chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
@@ -405,13 +405,13 @@ function regenerateTemplate() {
     const app = applications.find(a => a.id === activeApproveId);
     if (!app) return;
 
-    const discordLink  = document.getElementById('discordInviteUrl').value.trim();
-    const templateBox  = document.getElementById('whatsappTemplate');
+    const discordLink = document.getElementById('discordInviteUrl').value.trim();
+    const templateBox = document.getElementById('whatsappTemplate');
     let firstName = (app.name || 'Student').trim().split(/\s+/)[0];
     firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
     templateBox.textContent =
-`🚀 Congratulations, ${firstName}.
+        `🚀 Congratulations, ${firstName}.
 
 We're pleased to inform you that you've been selected to join *Pragen AI*.
 
